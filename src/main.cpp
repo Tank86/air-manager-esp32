@@ -1,10 +1,13 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <EEPROM.h>
+#include <WiFi.h>
+#include <PubSubClient.h>
 #include <bsec.h>
 #include <VL53L1X.h>
 
 
+///////////////////////////////////////////////////////////////////////////
 /* Configure the BSEC library with information about the sensor
     18v/33v = Voltage at Vdd. 1.8V or 3.3V
     3s/300s = BSEC operating mode, BSEC_SAMPLE_RATE_LP or BSEC_SAMPLE_RATE_ULP
@@ -32,13 +35,13 @@ void updateState(void);
 
 // Create an object of the class Bsec
 Bsec iaqSensor;
-String output;
-VL53L1X sensor;
 uint8_t bsecState[BSEC_MAX_STATE_BLOB_SIZE] = {0};
 uint16_t stateUpdateCounter = 0;
 
 void initBME680(void)
 {
+  String output;
+
   //iaqSensor.begin(SS, SPI);
   Wire.begin();
 
@@ -77,17 +80,17 @@ void loopBME680(void)
 {
   unsigned long time_trigger = millis();
   if (iaqSensor.run()) { // If new data is available
-    output = String(time_trigger);
+    String output = String(time_trigger);
     //output += ", " + String(iaqSensor.rawTemperature);
     //output += ", " + String(iaqSensor.rawHumidity);
     //output += ", " + String(iaqSensor.gasResistance);
     output += ", " + String(iaqSensor.iaqAccuracy); // 0: Stabilization 1: Low, 2:Medium : auto-trimming ongoing, 3: High accuracy
     output += ", " + String(iaqSensor.iaq);         // IAQ scale ranges from 0 (clean air) to 500 (heavily polluted air)
 //    output += ", " + String(iaqSensor.staticIaq); // Unscaled IaQ
-    output += ", " + String(iaqSensor.temperature);
-    output += ", " + String(iaqSensor.pressure /100);
-    output += ", " + String(iaqSensor.humidity);
-    output += ", " + String(iaqSensor.co2Equivalent);
+    output += ", " + String(iaqSensor.temperature) + "°C";
+    output += ", " + String(iaqSensor.pressure /100) + "mBar";
+    output += ", " + String(iaqSensor.humidity) + "%";
+    output += ", " + String(iaqSensor.co2Equivalent) + "ppm";
     output += ", " + String(iaqSensor.breathVocEquivalent);
     Serial.println(output);
     updateState();
@@ -101,25 +104,21 @@ void checkIaqSensorStatus(void)
 {
   if (iaqSensor.status != BSEC_OK) {
     if (iaqSensor.status < BSEC_OK) {
-      output = "BSEC error code : " + String(iaqSensor.status);
-      Serial.println(output);
+      Serial.println("BSEC error code : " + String(iaqSensor.status));
       for (;;)
         errLeds(); /* Halt in case of failure */
     } else {
-      output = "BSEC warning code : " + String(iaqSensor.status);
-      Serial.println(output);
+      Serial.println("BSEC warning code : " + String(iaqSensor.status));
     }
   }
 
   if (iaqSensor.bme680Status != BME680_OK) {
     if (iaqSensor.bme680Status < BME680_OK) {
-      output = "BME680 error code : " + String(iaqSensor.bme680Status);
-      Serial.println(output);
+      Serial.println("BME680 error code : " + String(iaqSensor.bme680Status));
       for (;;)
         errLeds(); /* Halt in case of failure */
     } else {
-      output = "BME680 warning code : " + String(iaqSensor.bme680Status);
-      Serial.println(output);
+      Serial.println("BME680 warning code : " + String(iaqSensor.bme680Status));
     }
   }
 }
@@ -193,6 +192,8 @@ void errLeds(void)
 
 
 ///////////VL53L1X////////
+VL53L1X sensor;
+
 void initVL53L1X()
 {
   Wire.begin();
@@ -297,20 +298,20 @@ void loopDustSensor(void)
   digitalWrite(iled, HIGH);
   delayMicroseconds(280);
   analogReadResolution(12); //12 bits
-  analogSetAttenuation(ADC_6db);  //No attenuation (range 100mV => 950mV)
+  analogSetAttenuation(ADC_11db);  //No attenuation (range 100mV => 950mV)
   //uint16_t adcvalue = analogRead(vout);
   uint16_t adcvalue = analogReadMilliVolts(vout);
   digitalWrite(iled, LOW);
   
   //  convert voltage (mv)
   // voltage = (SYS_VOLTAGE / 1024.0) * adcvalue * 11;
-  // 4.56 => 0.322 (Ratio = 0,0705)
+  // 4.56 => 2.275 (Ratio = 0,5)
   // 3.3V 12bits => 3.3/4096 = 0.8mV/step
-  float voltage = (adcvalue * (1.0/0.0705));
-  Serial.print("Adc(mV): "); Serial.print(adcvalue); Serial.print(" Volt(mV) : "); Serial.println(voltage); 
+  float voltage = (adcvalue * (1.0/0.5));
+  //Serial.print("Adc(mV): "); Serial.print(adcvalue); Serial.print(" Volt(mV) : "); Serial.println(voltage); 
 
   // Average filter
-  adcvalue = Filter(adcvalue);
+  voltage = Filter(voltage);
 
   // voltage to density
   /*
@@ -325,20 +326,140 @@ void loopDustSensor(void)
     
   Serial.print("The current dust concentration is: ");
   Serial.print(density);
-  Serial.print(" ug/m3\n");  
-  
+  Serial.print(" ug/m3 ");
+  if(density <= 50)        Serial.print("- Air quality: Excelent");
+  else if(density <= 100)  Serial.print("- Air quality: Average");
+  else if(density <= 150)  Serial.print("- Air quality: Light pollution");
+  else if(density <= 200)  Serial.print("- Air quality: Moderatre pollution");
+  else if(density <= 300)  Serial.print("- Air quality: Heavy pollution");
+  else if(density > 300)   Serial.print("- Air quality: Serious pollution");
+  Serial.println("");
+
 //  PM2.5 density  |  Air quality   |  Air quality   | Air quality 
 // value(μg/m3)    |  index  (AQi)  |     level      |  evaluation
-//     0-35        |      0-50      |       Ⅰ        |  Excellent
-//     35-75       |      51-100    |       Ⅱ        |  Average
-//     75-115      |      101-150   |       Ⅲ        |  Light pollution
-//     115-150     |      151-200   |       Ⅳ        |  Moderate pollution
-//     150-250     |      201-300   |       Ⅴ        |  Heavy pollution
-//     250-500     |      ≥300 	    |       Ⅵ        |  Serious pullution 
+//     0-35        |      0-50      |        I       |  Excellent
+//     35-75       |      51-100    |       II       |  Average
+//     75-115      |      101-150   |      III       |  Light pollution
+//     115-150     |      151-200   |       IV       |  Moderate pollution
+//     150-250     |      201-300   |        V       |  Heavy pollution
+//     250-500     |      ≥300 	    |       VI       |  Serious pullution 
 
   delay(1000);
 }
 
+
+//////////////////////////////
+
+// Replace the next variables with your SSID/Password combination
+const char* ssid = "";
+const char* password = "";
+
+// Add your MQTT Broker IP address:
+const char* mqtt_server = "homeassistant.local";//"192.168.1.52";
+const char* mqtt_user = "espModule_air";
+const char* mqtt_pwd = "espmodule_air";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+long lastMsg = 0;
+
+void setup_wifi() {
+  delay(10);
+  // We start by connecting to a WiFi network
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void callbackMQTT(char* topic, byte* message, unsigned int length) {
+  Serial.print("Message arrived on topic: ");
+  Serial.print(topic);
+  Serial.print(". Message: ");
+  String messageTemp;
+  
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)message[i]);
+    messageTemp += (char)message[i];
+  }
+  Serial.println();
+
+  // If a message is received on the topic esp32/output, you check if the message is either "on" or "off". 
+  // Changes the output state according to the message
+  if (String(topic) == "esp32/output") {
+    Serial.print("Changing output to ");
+    if(messageTemp == "on"){
+      Serial.println("on");
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
+    else if(messageTemp == "off"){
+      Serial.println("off");
+      digitalWrite(LED_BUILTIN, LOW);
+    }
+  }
+}
+
+void reconnect() {
+  // Loop until we're reconnected
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect("esp-air-manager", mqtt_user, mqtt_pwd)) {
+      Serial.println("connected");
+      // Subscribe
+      client.subscribe("esp32/output");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+}
+
+void initMQTT(void) {
+  setup_wifi();
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callbackMQTT);
+}
+
+void loopMQTT() {
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
+
+  long now = millis();
+  if ((now - lastMsg) > 5000) {
+    lastMsg = now;
+    
+    // Convert the value to a char array
+    char tempString[8];
+    dtostrf(iaqSensor.temperature, 1, 2, tempString);
+    Serial.print("Temperature: ");
+    Serial.println(tempString);
+    client.publish("esp32/temperature", tempString);
+    
+    // Convert the value to a char array
+    char humString[8];
+    dtostrf(iaqSensor.humidity, 1, 2, humString);
+    Serial.print("Humidity: ");
+    Serial.println(humString);
+    client.publish("esp32/humidity", humString);
+  }
+}
 
 
 
@@ -347,14 +468,16 @@ void setup()
 {
   Serial.begin(115200);
 
-  //initBME680();
+  initMQTT();
+  initBME680();
   //initVL53L1X();
   initDustSensor();
 }
 
 void loop()
 {
-  //loopBME680();
+  loopMQTT();
+  loopBME680();
   //loopVL53L1X();
   loopDustSensor();
 }
