@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include <EEPROM.h>
 #include <WiFi.h>
+#include <ArduinoHA.h>
 #include <PubSubClient.h>
 #include <bsec.h>
 #include <VL53L1X.h>
@@ -246,8 +247,8 @@ void loopVL53L1X()
 
 
 /* I/O define */
-const uint8_t iled = A15;  //drive the led of sensor
-const uint8_t vout = A14;  //analog input
+const uint8_t iled = A5;  //drive the led of sensor
+const uint8_t vout = A4;  //analog input
 
 
 uint16_t Filter(uint16_t m)
@@ -350,14 +351,12 @@ void loopDustSensor(void)
 
 //////////////////////////////
 
-// Replace the next variables with your SSID/Password combination
-const char* ssid = "";
-const char* password = "";
-
-// Add your MQTT Broker IP address:
-const char* mqtt_server = "homeassistant.local";//"192.168.1.52";
-const char* mqtt_user = "espModule_air";
-const char* mqtt_pwd = "espmodule_air";
+#include <wifiCredentials.hpp>
+//const char* ssid = "";
+//const char* password = "";
+//const char* mqtt_server = "homeassistant.local";
+//const char* mqtt_user = "";
+//const char* mqtt_pwd = "";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -461,6 +460,117 @@ void loopMQTT() {
   }
 }
 
+/////////////////// Home assistant device ///////////
+
+HADevice device;
+HAMqtt mqtt(espClient, device);
+HASwitch led("led", false); // "led" is unique ID of the switch. You should define your own ID.
+HAFan purifierMotor("motor", HAFan::SpeedsFeature); // "motor" is unique ID of the switch. You should define your own ID.
+HASensor temp("temperature"); // "temperature" is unique ID of the sensor. You should define your own ID.
+HASensor humidity("humidity"); // "humidity" is unique ID of the sensor. You should define your own ID.
+HASensor pressure("pressure"); // "pressure" is unique ID of the sensor. You should define your own ID.
+HASensor co2("co2_equivalent"); // "co2_equivalent" is unique ID of the sensor. You should define your own ID.
+HASensor iaq("iaq"); // "iaq" is unique ID of the sensor. You should define your own ID.
+unsigned long lastSentAt = millis();
+
+void onSwitchStateChanged(bool state, HASwitch* s)
+{
+    Serial.println("received "+  String(state));
+    //digitalWrite(TX, (state ? HIGH : LOW));
+}
+
+void onPurifierMotorSpeedChanged(uint16_t speed)
+{
+    Serial.println("Fan speed received "+  String(speed));
+}
+
+void onPurifierMotorStateChanged(bool state)
+{
+    Serial.println("Fan state received "+  String(state));
+}
+
+void initHAMQTTDevice() {
+    // Unique ID must be set!
+    byte mac[6]; //WL_MAC_ADDR_LENGTH];
+    WiFi.macAddress(mac);
+    device.setUniqueId(mac, sizeof(mac));
+
+    //pinMode(TX, OUTPUT);
+    //digitalWrite(TX, LOW);
+
+    // connect to wifi
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+        Serial.print(".");
+        delay(500); // waiting for the connection
+    }
+    Serial.println();
+    Serial.println("Connected to the network");
+
+    // set device's details (optional)
+    device.setName("air-manager-esp32");
+    //device.setModel("Air purifier station");
+    device.setSoftwareVersion("1.0.0");
+
+    //purifierMotor.setRetain(true);
+    purifierMotor.onSpeedChanged(onPurifierMotorSpeedChanged);
+    purifierMotor.onStateChanged(onPurifierMotorStateChanged);
+    purifierMotor.setSpeedRangeMin(30); 
+    purifierMotor.setSpeedRangeMax(95);
+    purifierMotor.setIcon("mdi:air-purifier");
+    purifierMotor.setName("AirPurifier speed");
+
+    // handle switch state
+    //led.onBeforeStateChanged(onBeforeSwitchStateChanged); // optional
+    led.onStateChanged(onSwitchStateChanged);
+    led.setIcon("mdi:lightbulb"); //optional
+    led.setName("air-sensor-led"); // optional
+
+    temp.setUnitOfMeasurement("°C");
+    temp.setDeviceClass("temperature");
+    temp.setIcon("mdi:temperature-celsius");
+    temp.setName("AirPurifier temperature");
+
+    humidity.setUnitOfMeasurement("%");
+    humidity.setDeviceClass("humidity");
+    humidity.setIcon("mdi:water-percent");
+    humidity.setName("AirPurifier humidity");
+
+    pressure.setUnitOfMeasurement("mBar");
+    pressure.setDeviceClass("pressure");
+    pressure.setIcon("mdi:weather-cloudy");
+    pressure.setName("AirPurifier pressure");
+
+    co2.setUnitOfMeasurement("ppm");
+    co2.setDeviceClass("carbon_dioxide");
+    co2.setIcon("mdi:molecule-co2");
+    co2.setName("AirPurifier co2 equivalent");
+
+    iaq.setDeviceClass("aqi");
+    iaq.setIcon("mdi:quality-high");
+    iaq.setName("AirPurifier iaq");
+
+
+    // start server
+    mqtt.begin(mqtt_server, 1883, mqtt_user, mqtt_pwd);
+}
+
+void loopHAMQTTDevice() {
+    mqtt.loop();
+
+    // Update sensors values
+    if ((millis() - lastSentAt) >= 5000) {
+        lastSentAt = millis();
+        temp.setValue(iaqSensor.temperature);
+        humidity.setValue(iaqSensor.humidity);
+        pressure.setValue(iaqSensor.pressure / 100.0);
+        co2.setValue(iaqSensor.co2Equivalent);
+        iaq.setValue(iaqSensor.iaq);
+
+        //purifierMotor.setSpeed(iaqSensor.temperature);
+    }
+}
+////////////////////////////////////////////////
 
 
 /////////////////// ARDUINO CODE //////////////
@@ -468,18 +578,20 @@ void setup()
 {
   Serial.begin(115200);
 
-  initMQTT();
+  initHAMQTTDevice();
+  //initMQTT();
   initBME680();
   //initVL53L1X();
-  initDustSensor();
+  //initDustSensor();
 }
 
 void loop()
 {
-  loopMQTT();
+  loopHAMQTTDevice();
+  //loopMQTT();
   loopBME680();
   //loopVL53L1X();
-  loopDustSensor();
+  //loopDustSensor();
 }
 
 /////////////////// ARDUINO CODE //////////////
