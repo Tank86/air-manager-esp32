@@ -464,7 +464,11 @@ void loopMQTT() {
 
 HADevice device;
 HAMqtt mqtt(espClient, device);
-HASwitch led("led", false); // "led" is unique ID of the switch. You should define your own ID.
+// See https://www.home-assistant.io/integrations/#search/mqtt
+// See https://www.home-assistant.io/integrations/sensor/#device-class
+// Need to add MQTT Light https://www.home-assistant.io/integrations/light.mqtt/
+//HASwitch led("led", false); // "led" is unique ID of the switch. You should define your own ID.
+HALight ledStrip("ledStrip");
 HAFan purifierMotor("motor", HAFan::SpeedsFeature); // "motor" is unique ID of the switch. You should define your own ID.
 HASensor temp("temperature"); // "temperature" is unique ID of the sensor. You should define your own ID.
 HASensor humidity("humidity"); // "humidity" is unique ID of the sensor. You should define your own ID.
@@ -472,12 +476,6 @@ HASensor pressure("pressure"); // "pressure" is unique ID of the sensor. You sho
 HASensor co2("co2_equivalent"); // "co2_equivalent" is unique ID of the sensor. You should define your own ID.
 HASensor iaq("iaq"); // "iaq" is unique ID of the sensor. You should define your own ID.
 unsigned long lastSentAt = millis();
-
-void onSwitchStateChanged(bool state, HASwitch* s)
-{
-    Serial.println("received "+  String(state));
-    //digitalWrite(TX, (state ? HIGH : LOW));
-}
 
 void onPurifierMotorSpeedChanged(uint16_t speed)
 {
@@ -488,6 +486,22 @@ void onPurifierMotorStateChanged(bool state)
 {
     Serial.println("Fan state received "+  String(state));
 }
+
+void onLedBrightnessChanged(uint8_t brightness)
+{
+    Serial.println("Led Strip Brightness Changed "+  String(brightness));
+}
+
+void onLedColorChanged(uint8_t red, uint8_t green, uint8_t blue)
+{
+    Serial.println("Led Strip Color Changed "+  String(red) + ", " +  String(green) + ", " +  String(blue));
+}
+
+void onLedStateChanged(bool state)
+{
+    Serial.println("Led Strip State Changed "+  String(state));
+}
+
 
 void initHAMQTTDevice() {
     // Unique ID must be set!
@@ -509,7 +523,8 @@ void initHAMQTTDevice() {
 
     // set device's details (optional)
     device.setName("air-manager-esp32");
-    //device.setModel("Air purifier station");
+    device.setManufacturer("DIY electronic");
+    device.setModel("Air purifier station");
     device.setSoftwareVersion("1.0.0");
 
     //purifierMotor.setRetain(true);
@@ -517,14 +532,14 @@ void initHAMQTTDevice() {
     purifierMotor.onStateChanged(onPurifierMotorStateChanged);
     purifierMotor.setSpeedRangeMin(30); 
     purifierMotor.setSpeedRangeMax(95);
-    purifierMotor.setIcon("mdi:air-purifier");
+    //purifierMotor.setIcon("mdi:air-purifier");
     purifierMotor.setName("AirPurifier speed");
 
-    // handle switch state
-    //led.onBeforeStateChanged(onBeforeSwitchStateChanged); // optional
-    led.onStateChanged(onSwitchStateChanged);
-    led.setIcon("mdi:lightbulb"); //optional
-    led.setName("air-sensor-led"); // optional
+    ledStrip.onStateChanged(onLedStateChanged);
+    ledStrip.onBrightnessChanged(onLedBrightnessChanged);
+    ledStrip.onColorChanged(onLedColorChanged);
+    ledStrip.setIcon("mdi:lightbulb"); //optional
+    ledStrip.setName("AirPurifier strip"); // optional
 
     temp.setUnitOfMeasurement("°C");
     temp.setDeviceClass("temperature");
