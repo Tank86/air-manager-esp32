@@ -308,6 +308,9 @@ void loopDustSensor(void)
 //const char* mqtt_server = "homeassistant.local";
 //const char* mqtt_user = "";
 //const char* mqtt_pwd = "";
+///////////////////////////////////////
+
+#ifndef HOMEASSISTANT
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -345,10 +348,10 @@ void callbackMQTT(char* topic, byte* message, unsigned int length) {
   }
   Serial.println();
 
-  // If a message is received on the topic esp32/output, you check if the message is either "on" or "off". 
+  // If a message is received on the topic air-manager/motor-speed, you check if the motor speed. 
   // Changes the output state according to the message
-  if (String(topic) == "esp32/output") {
-    Serial.print("Changing output to ");
+  if (String(topic) == "air-manager/motor-speed") {
+    Serial.print("Changing motor speed to ");
     if(messageTemp == "on"){
       Serial.println("on");
       digitalWrite(LED_BUILTIN, HIGH);
@@ -365,10 +368,10 @@ void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect("esp-air-manager", mqtt_user, mqtt_pwd)) {
+    if (client.connect("air-manager", mqtt_user, mqtt_pwd)) {
       Serial.println("connected");
       // Subscribe
-      client.subscribe("esp32/output");
+      client.subscribe("air-manager/motor-speed");
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -392,7 +395,7 @@ void loopMQTT() {
   client.loop();
 
   long now = millis();
-  if ((now - lastMsg) > 5000) {
+  if ((now - lastMsg) > 60000) {
     lastMsg = now;
     
     // Convert the value to a char array
@@ -400,19 +403,35 @@ void loopMQTT() {
     dtostrf(iaqSensor.temperature, 1, 2, tempString);
     Serial.print("Temperature: ");
     Serial.println(tempString);
-    client.publish("esp32/temperature", tempString);
+    client.publish("air-manager/temperature", tempString);
     
     // Convert the value to a char array
     char humString[8];
     dtostrf(iaqSensor.humidity, 1, 2, humString);
     Serial.print("Humidity: ");
     Serial.println(humString);
-    client.publish("esp32/humidity", humString);
+    client.publish("air-manager/humidity", humString);
+
+    // Convert the value to a char array
+    char pressString[8];
+    dtostrf(iaqSensor.pressure, 1, 2, pressString);
+    Serial.print("Pressure: ");
+    Serial.println(pressString);
+    client.publish("air-manager/pressure", pressString);
+
+    //Send co2 & iaq only when stabilisation is at least at medium state (2)
+    if(iaqSensor.iaqAccuracy > 1) {
+      //TODO Send iaqSensor.iaq
+      //TODO Send iaqSensor.co2Equivalent
+      //TODO Send iaqSensor.breathVocEquivalent
+    }
+
   }
 }
-
+#else
 /////////////////// Home assistant device ///////////
 
+WiFiClient espClient;
 HADevice device;
 HAMqtt mqtt(espClient, device);
 // See https://www.home-assistant.io/integrations/#search/mqtt
@@ -420,12 +439,14 @@ HAMqtt mqtt(espClient, device);
 // Need to add MQTT Light https://www.home-assistant.io/integrations/light.mqtt/
 //HASwitch led("led", false); // "led" is unique ID of the switch. You should define your own ID.
 HALight ledStrip("ledStrip");
-HAFan purifierMotor("motor", HAFan::SpeedsFeature); // "motor" is unique ID of the switch. You should define your own ID.
-HASensor temp("temperature"); // "temperature" is unique ID of the sensor. You should define your own ID.
-HASensor humidity("humidity"); // "humidity" is unique ID of the sensor. You should define your own ID.
-HASensor pressure("pressure"); // "pressure" is unique ID of the sensor. You should define your own ID.
-HASensor co2("co2_equivalent"); // "co2_equivalent" is unique ID of the sensor. You should define your own ID.
-HASensor iaq("iaq"); // "iaq" is unique ID of the sensor. You should define your own ID.
+HAFan purifierMotor("motor", HAFan::SpeedsFeature); // "motor" is unique ID of the switch.
+HASensor temp("temperature"); // "temperature" is unique ID of the sensor.
+HASensor humidity("humidity"); // "humidity" is unique ID of the sensor.
+HASensor pressure("pressure"); // "pressure" is unique ID of the sensor.
+HASensor co2("co2_equivalent"); // "co2_equivalent" is unique ID of the sensor.
+HASensor iaq("iaq"); // "iaq" is unique ID of the sensor.
+HASensor iaqAccuracy("iaqAccuracy"); // 0: stabilisation, 1, low, 2, medium, 3, high
+HASensor vocEquivalent("vocEquivalent"); // breath voc equivalent (ppm)
 
 void onPurifierMotorSpeedChanged(uint16_t speed)
 {
@@ -469,8 +490,8 @@ void initHAMQTTDevice() {
     Serial.println("Connected to the network");
 
     // set device's details (optional)
-    device.setName("air-manager-esp32");
-    device.setManufacturer("DIY electronic");
+    device.setName("air-manager");
+    device.setManufacturer("Tank86 electronics");
     device.setModel("Air purifier station");
     device.setSoftwareVersion("1.0.0");
 
@@ -511,7 +532,15 @@ void initHAMQTTDevice() {
     iaq.setDeviceClass("aqi");
     iaq.setIcon("mdi:quality-high");
     iaq.setName("AirPurifier iaq");
+    
+    //iaqAccuracy.setDeviceClass("none");
+    iaqAccuracy.setIcon("mdi:poll");
+    iaqAccuracy.setName("AirPurifier IAQ accuracy");
 
+    vocEquivalent.setUnitOfMeasurement("ppm");
+    vocEquivalent.setDeviceClass("volatile_organic_compounds");
+    vocEquivalent.setIcon("mdi:emoticon-poop");
+    vocEquivalent.setName("AirPurifier VOC equivalent");
 
     // start server
     mqtt.begin(mqtt_server, 1883, mqtt_user, mqtt_pwd);
@@ -531,16 +560,20 @@ void loopHAMQTTDevice() {
         temp.setValue(iaqSensor.temperature);
         humidity.setValue(iaqSensor.humidity);
         pressure.setValue(iaqSensor.pressure / 100.0);
+        iaqAccuracy.setValue(iaqSensor.iaqAccuracy);
 
-        //Send co2 & iaq only when stabilisation is at least at medium state
+        //Send co2 & iaq only when stabilisation is at least at medium state (2)
         if(iaqSensor.iaqAccuracy > 1) {
           iaq.setValue(iaqSensor.iaq);
           co2.setValue(iaqSensor.co2Equivalent);
+          vocEquivalent.setValue(iaqSensor.breathVocEquivalent);
         }
 
         //purifierMotor.setSpeed(iaqSensor.temperature);
     }
 }
+
+#endif
 ////////////////////////////////////////////////
 
 
