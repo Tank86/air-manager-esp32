@@ -5,7 +5,6 @@
 #include <ArduinoHA.h>
 #include <PubSubClient.h>
 #include <bsec.h>
-#include <VL53L1X.h>
 
 
 ///////////////////////////////////////////////////////////////////////////
@@ -54,6 +53,7 @@ void initBME680(void)
   iaqSensor.setConfig(bsec_config_iaq);
   checkIaqSensorStatus();
 
+  EEPROM.begin(256);
   loadState();
   
   bsec_virtual_sensor_t sensorList[] = {
@@ -190,55 +190,6 @@ void errLeds(void)
   delay(100);
 }
 
-
-
-///////////VL53L1X////////
-VL53L1X sensor;
-
-void initVL53L1X()
-{
-  Wire.begin();
-  Wire.setClock(400000); // use 400 kHz I2C
-
-  sensor.setTimeout(500);
-  if (!sensor.init())
-  {
-    Serial.println("Failed to detect and initialize sensor!");
-    while (1);
-  }
-
-  ;sensor.setROISize(4,4);
-  ;sensor.setROICenter(155);
-
-  // Use long distance mode and allow up to 50000 us (50 ms) for a measurement.
-  // You can change these settings to adjust the performance of the sensor, but
-  // the minimum timing budget is 20 ms for short distance mode and 33 ms for
-  // medium and long distance modes. See the VL53L1X datasheet for more
-  // information on range and timing limits.
-  sensor.setDistanceMode(VL53L1X::Long);
-  sensor.setMeasurementTimingBudget(50000);
-  
-  // Start continuous readings at a rate of one measurement every 50 ms (the
-  // inter-measurement period). This period should be at least as long as the
-  // timing budget.
-  sensor.startContinuous(50);
-}
-void loopVL53L1X()
-{
-  sensor.read();
-
-  Serial.print("range: ");
-  Serial.print(sensor.ranging_data.range_mm);
-  Serial.print("\tstatus: ");
-  Serial.print(VL53L1X::rangeStatusToString(sensor.ranging_data.range_status));
-  Serial.print("\tpeak signal: ");
-  Serial.print(sensor.ranging_data.peak_signal_count_rate_MCPS);
-  Serial.print("\tambient: ");
-  Serial.print(sensor.ranging_data.ambient_count_rate_MCPS);
-
-  Serial.println();
-}
-/////////////////////////
 
 ///////////Sharp DustSensor GP2Y1010AU0F | GP2Y1014AU0F////////
 #define COV_RATIO        0.17//0.2    //ug/mmm / mv
@@ -475,7 +426,6 @@ HASensor humidity("humidity"); // "humidity" is unique ID of the sensor. You sho
 HASensor pressure("pressure"); // "pressure" is unique ID of the sensor. You should define your own ID.
 HASensor co2("co2_equivalent"); // "co2_equivalent" is unique ID of the sensor. You should define your own ID.
 HASensor iaq("iaq"); // "iaq" is unique ID of the sensor. You should define your own ID.
-unsigned long lastSentAt = millis();
 
 void onPurifierMotorSpeedChanged(uint16_t speed)
 {
@@ -508,9 +458,6 @@ void initHAMQTTDevice() {
     byte mac[6]; //WL_MAC_ADDR_LENGTH];
     WiFi.macAddress(mac);
     device.setUniqueId(mac, sizeof(mac));
-
-    //pinMode(TX, OUTPUT);
-    //digitalWrite(TX, LOW);
 
     // connect to wifi
     WiFi.begin(ssid, password);
@@ -571,16 +518,25 @@ void initHAMQTTDevice() {
 }
 
 void loopHAMQTTDevice() {
+    static unsigned long lastSentAt = millis();
+
     mqtt.loop();
 
-    // Update sensors values
-    if ((millis() - lastSentAt) >= 5000) {
+    // Update sensors values every minute
+    if (((millis() - lastSentAt) >= 60000) &&
+        (iaqSensor.status == BSEC_OK)) {
         lastSentAt = millis();
+
+        //Send commom values
         temp.setValue(iaqSensor.temperature);
         humidity.setValue(iaqSensor.humidity);
         pressure.setValue(iaqSensor.pressure / 100.0);
-        co2.setValue(iaqSensor.co2Equivalent);
-        iaq.setValue(iaqSensor.iaq);
+
+        //Send co2 & iaq only when stabilisation is at least at medium state
+        if(iaqSensor.iaqAccuracy > 1) {
+          iaq.setValue(iaqSensor.iaq);
+          co2.setValue(iaqSensor.co2Equivalent);
+        }
 
         //purifierMotor.setSpeed(iaqSensor.temperature);
     }
@@ -596,17 +552,15 @@ void setup()
   initHAMQTTDevice();
   //initMQTT();
   initBME680();
-  //initVL53L1X();
   //initDustSensor();
 }
 
 void loop()
 {
-  loopHAMQTTDevice();
-  //loopMQTT();
   loopBME680();
-  //loopVL53L1X();
+  //loopMQTT();
   //loopDustSensor();
+  loopHAMQTTDevice();
 }
 
 /////////////////// ARDUINO CODE //////////////
