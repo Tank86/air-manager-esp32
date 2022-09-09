@@ -1,0 +1,3 @@
+[submodule "lib/MCP40xx"]
+	path = lib/MCP40xx
+	url = https://github.com/dzalf/MCP40xx_Digital_Potentiometer
