@@ -4,7 +4,8 @@
 #include <WiFi.h>
 #include <ArduinoHA.h>
 #include <PubSubClient.h>
-#include <bsec.h>
+#include <bsec2.h>
+#include <MCP40xx.h>
 
 
 ///////////////////////////////////////////////////////////////////////////
@@ -21,20 +22,20 @@
     generic_33v_300s_4d
     generic_33v_300s_28d
 */
-const uint8_t bsec_config_iaq[] = {
-#include "config/generic_33v_3s_4d/bsec_iaq.txt"
-};
+//const uint8_t bsec_config_iaq[] = {
+//#include "config/generic_33v_3s_4d/bsec_iaq.txt"
+//};
 
 #define STATE_SAVE_PERIOD	UINT32_C(360 * 60 * 1000) // 360 minutes - 4 times a day
 
 // Helper functions declarations
-void checkIaqSensorStatus(void);
+void checkBsecStatus(Bsec2 bsec);
 void errLeds(void);
 void loadState(void);
 void updateState(void);
 
 // Create an object of the class Bsec
-Bsec iaqSensor;
+Bsec2 iaqSensor;
 uint8_t bsecState[BSEC_MAX_STATE_BLOB_SIZE] = {0};
 uint16_t stateUpdateCounter = 0;
 
@@ -45,13 +46,18 @@ void initBME680(void)
   //iaqSensor.begin(SS, SPI);
   Wire.begin();
 
-  iaqSensor.begin(BME680_I2C_ADDR_SECONDARY, Wire);
+  if(!iaqSensor.begin(BME68X_I2C_ADDR_HIGH, Wire));
+  {
+    checkBsecStatus(iaqSensor);
+  }
   output = "\nBSEC library version " + String(iaqSensor.version.major) + "." + String(iaqSensor.version.minor) + "." + String(iaqSensor.version.major_bugfix) + "." + String(iaqSensor.version.minor_bugfix);
   Serial.println(output);
-  checkIaqSensorStatus();
 
-  iaqSensor.setConfig(bsec_config_iaq);
-  checkIaqSensorStatus();
+  //TODO 
+  if(0);//!iaqSensor.setConfig(bsec_config_iaq))
+  {
+    checkBsecStatus(iaqSensor);
+  }
 
   EEPROM.begin(256);
   loadState();
@@ -69,8 +75,10 @@ void initBME680(void)
     BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
   };
 
-  iaqSensor.updateSubscription(sensorList, sizeof(sensorList)/sizeof(sensorList[0]), BSEC_SAMPLE_RATE_LP);
-  checkIaqSensorStatus();
+  if(!iaqSensor.updateSubscription(sensorList, ARRAY_LEN(sensorList), BSEC_SAMPLE_RATE_LP))
+  {
+    checkBsecStatus(iaqSensor);
+  }
 
   // Print the header
   output = "Timestamp [ms], IAQ accuracy[0-3], IAQ, temperature [°C], pressure [mBar], humidity [%], CO2 equivalent, breath VOC equivalent";
@@ -82,47 +90,49 @@ void loopBME680(void)
   unsigned long time_trigger = millis();
   if (iaqSensor.run()) { // If new data is available
     String output = String(time_trigger);
-    //output += ", " + String(iaqSensor.rawTemperature);
-    //output += ", " + String(iaqSensor.rawHumidity);
-    //output += ", " + String(iaqSensor.gasResistance);
-    output += ", " + String(iaqSensor.iaqAccuracy); // 0: Stabilization 1: Low, 2:Medium : auto-trimming ongoing, 3: High accuracy
-    output += ", " + String(iaqSensor.iaq);         // IAQ scale ranges from 0 (clean air) to 500 (heavily polluted air)
-//    output += ", " + String(iaqSensor.staticIaq); // Unscaled IaQ
-    output += ", " + String(iaqSensor.temperature) + "°C";
-    output += ", " + String(iaqSensor.pressure /100) + "mBar";
-    output += ", " + String(iaqSensor.humidity) + "%";
-    output += ", " + String(iaqSensor.co2Equivalent) + "ppm";
-    output += ", " + String(iaqSensor.breathVocEquivalent);
+    auto sensors = iaqSensor.getOutputs();
+    //output += ", " + String(sensors->output[].signal iaqSensor.rawTemperature);
+    //output += ", " + String(sensors->output[].signal iaqSensor.rawHumidity);
+    //output += ", " + String(sensors->output[].signal iaqSensor.gasResistance);
+    output += ", " + String(sensors->output[BSEC_OUTPUT_STABILIZATION_STATUS].signal); // 0: Stabilization 1: Low, 2:Medium : auto-trimming ongoing, 3: High accuracy
+    output += ", " + String(sensors->output[BSEC_OUTPUT_IAQ].signal);         // IAQ scale ranges from 0 (clean air) to 500 (heavily polluted air)
+//    output += ", " + String(sensors->output[]iaqSensor.staticIaq); // Unscaled IaQ
+    output += ", " + String(sensors->output[BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE].signal) + "°C";
+    output += ", " + String(sensors->output[BSEC_OUTPUT_RAW_PRESSURE].signal  / 100) + "mBar";
+    output += ", " + String(sensors->output[BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY].signal) + "%";
+    output += ", " + String(sensors->output[BSEC_OUTPUT_CO2_EQUIVALENT].signal) + "ppm";
+    output += ", " + String(sensors->output[BSEC_OUTPUT_BREATH_VOC_EQUIVALENT].signal);
     Serial.println(output);
     updateState();
   } else {
-    checkIaqSensorStatus();
+    checkBsecStatus(iaqSensor);
   }
 }
 
 // Helper function definitions
-void checkIaqSensorStatus(void)
+void checkBsecStatus(Bsec2 bsec)
 {
-  if (iaqSensor.status != BSEC_OK) {
-    if (iaqSensor.status < BSEC_OK) {
-      Serial.println("BSEC error code : " + String(iaqSensor.status));
-      for (;;)
+    if (bsec.status < BSEC_OK)
+    {
+        Serial.println("BSEC error code : " + String(bsec.status));
         errLeds(); /* Halt in case of failure */
-    } else {
-      Serial.println("BSEC warning code : " + String(iaqSensor.status));
     }
-  }
+    else if (bsec.status > BSEC_OK)
+    {
+        Serial.println("BSEC warning code : " + String(bsec.status));
+    }
 
-  if (iaqSensor.bme680Status != BME680_OK) {
-    if (iaqSensor.bme680Status < BME680_OK) {
-      Serial.println("BME680 error code : " + String(iaqSensor.bme680Status));
-      for (;;)
+    if (bsec.sensor.status < BME68X_OK)
+    {
+        Serial.println("BME68X error code : " + String(bsec.sensor.status));
         errLeds(); /* Halt in case of failure */
-    } else {
-      Serial.println("BME680 warning code : " + String(iaqSensor.bme680Status));
     }
-  }
+    else if (bsec.sensor.status > BME68X_OK)
+    {
+        Serial.println("BME68X warning code : " + String(bsec.sensor.status));
+    }
 }
+
 
 void loadState(void)
 {
@@ -135,8 +145,8 @@ void loadState(void)
       Serial.println(bsecState[i], HEX);
     }
 
-    iaqSensor.setState(bsecState);
-    checkIaqSensorStatus();
+    if(!iaqSensor.setState(bsecState))
+      checkBsecStatus(iaqSensor);
   } else {
     // Erase the EEPROM with zeroes
     Serial.println("Erasing EEPROM");
@@ -153,7 +163,8 @@ void updateState(void)
   bool update = false;
   /* Set a trigger to save the state. Here, the state is saved every STATE_SAVE_PERIOD with the first state being saved once the algorithm achieves full calibration, i.e. iaqAccuracy = 3 */
   if (stateUpdateCounter == 0) {
-    if (iaqSensor.iaqAccuracy >= 3) {
+    //if (iaqSensor.iaqAccuracy >= 3) {
+    if(iaqSensor.getOutputs()->output[BSEC_OUTPUT_STABILIZATION_STATUS].signal != 0) {
       update = true;
       stateUpdateCounter++;
     }
@@ -166,18 +177,20 @@ void updateState(void)
   }
 
   if (update) {
-    iaqSensor.getState(bsecState);
-    checkIaqSensorStatus();
+    if(!iaqSensor.getState(bsecState))
+      checkBsecStatus(iaqSensor);
+    else
+    {
+      Serial.println("Writing state to EEPROM");
 
-    Serial.println("Writing state to EEPROM");
+      for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE ; i++) {
+        EEPROM.write(i + 1, bsecState[i]);
+        Serial.println(bsecState[i], HEX);
+      }
 
-    for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE ; i++) {
-      EEPROM.write(i + 1, bsecState[i]);
-      Serial.println(bsecState[i], HEX);
+      EEPROM.write(0, BSEC_MAX_STATE_BLOB_SIZE);
+      EEPROM.commit();
     }
-
-    EEPROM.write(0, BSEC_MAX_STATE_BLOB_SIZE);
-    EEPROM.commit();
   }
 }
 
@@ -201,6 +214,7 @@ void errLeds(void)
 const uint8_t iled = A5;  //drive the led of sensor
 const uint8_t vout = A4;  //analog input
 
+float dust_density = nanf("");
 
 uint16_t Filter(uint16_t m)
 {
@@ -250,7 +264,12 @@ void loopDustSensor(void)
   digitalWrite(iled, HIGH);
   delayMicroseconds(280);
   analogReadResolution(12); //12 bits
-  analogSetAttenuation(ADC_11db);  //No attenuation (range 100mV => 950mV)
+  analogSetAttenuation(ADC_11db);
+                                         // ADC_0db provides no attenuation so IN/OUT = 1 / 1 an input of 3 volts remains at 3 volts before ADC measurement
+                                        // ADC_2_5db provides an attenuation so that IN/OUT = 1 / 1.34 an input of 3 volts is reduced to 2.238 volts before ADC measurement
+                                        // ADC_6db provides an attenuation so that IN/OUT = 1 / 2 an input of 3 volts is reduced to 1.500 volts before ADC measurement
+                                        // ADC_11db provides an attenuation so that IN/OUT = 1 / 3.6 an input of 3 volts is reduced to 0.833 volts before ADC measurement
+ 
   //uint16_t adcvalue = analogRead(vout);
   uint16_t adcvalue = analogReadMilliVolts(vout);
   digitalWrite(iled, LOW);
@@ -274,17 +293,17 @@ void loopDustSensor(void)
     density = 0;
   */
   //See http://www.howmuchsnow.com/arduino/airquality/
- 	float density = ((0.17 * (voltage/1000.0)) - 0.1) * 1000.0;
+ 	dust_density = ((0.17 * (voltage/1000.0)) - 0.1) * 1000.0;
     
   Serial.print("The current dust concentration is: ");
-  Serial.print(density);
+  Serial.print(dust_density);
   Serial.print(" ug/m3 ");
-  if(density <= 50)        Serial.print("- Air quality: Excelent");
-  else if(density <= 100)  Serial.print("- Air quality: Average");
-  else if(density <= 150)  Serial.print("- Air quality: Light pollution");
-  else if(density <= 200)  Serial.print("- Air quality: Moderatre pollution");
-  else if(density <= 300)  Serial.print("- Air quality: Heavy pollution");
-  else if(density > 300)   Serial.print("- Air quality: Serious pollution");
+  if(dust_density <= 50)        Serial.print("- Air quality: Excelent");
+  else if(dust_density <= 100)  Serial.print("- Air quality: Average");
+  else if(dust_density <= 150)  Serial.print("- Air quality: Light pollution");
+  else if(dust_density <= 200)  Serial.print("- Air quality: Moderatre pollution");
+  else if(dust_density <= 300)  Serial.print("- Air quality: Heavy pollution");
+  else if(dust_density > 300)   Serial.print("- Air quality: Serious pollution");
   Serial.println("");
 
 //  PM2.5 density  |  Air quality   |  Air quality   | Air quality 
@@ -298,7 +317,24 @@ void loopDustSensor(void)
 
   delay(1000);
 }
+//////////////////////////////
 
+/////////// MCP 40xx digital potentiometer ////////
+
+// Pins declaration
+const uint8_t POT_UDPin = 16;   // UP/DOWN
+const uint8_t POT_CSPin = 18;  // CHIP SELECT
+
+MCP40xx pot = MCP40xx(POT_CSPin, POT_UDPin);
+
+void initDigitalPot() 
+{
+  pot.setup();
+  // MCP4011 10Kohm installed
+  pot.begin(10000);
+
+  pot.zeroWiper();
+}
 
 //////////////////////////////
 
@@ -444,18 +480,30 @@ HASensor temp("temperature"); // "temperature" is unique ID of the sensor.
 HASensor humidity("humidity"); // "humidity" is unique ID of the sensor.
 HASensor pressure("pressure"); // "pressure" is unique ID of the sensor.
 HASensor co2("co2_equivalent"); // "co2_equivalent" is unique ID of the sensor.
-HASensor iaq("iaq"); // "iaq" is unique ID of the sensor.
+HASensor iaq("iaq"); // quality air index
 HASensor iaqAccuracy("iaqAccuracy"); // 0: stabilisation, 1, low, 2, medium, 3, high
 HASensor vocEquivalent("vocEquivalent"); // breath voc equivalent (ppm)
+HASensor dustPM25("pm2.5");
+
+const uint8_t Relay1_Pin = 11;
+const uint8_t Relay2_Pin = 12;
+
 
 void onPurifierMotorSpeedChanged(uint16_t speed)
 {
     Serial.println("Fan speed received "+  String(speed));
+    
+    //Assign pot value according to speed
+    //pot.setValue()
 }
 
 void onPurifierMotorStateChanged(bool state)
 {
     Serial.println("Fan state received "+  String(state));
+
+    //Set relay on/off
+    digitalWrite(Relay1_Pin, state);
+    digitalWrite(Relay2_Pin, state);
 }
 
 void onLedBrightnessChanged(uint8_t brightness)
@@ -471,6 +519,13 @@ void onLedColorChanged(uint8_t red, uint8_t green, uint8_t blue)
 void onLedStateChanged(bool state)
 {
     Serial.println("Led Strip State Changed "+  String(state));
+}
+
+
+void initPurifierPins()
+{
+    pinMode(Relay1_Pin, OUTPUT);
+    pinMode(Relay2_Pin, OUTPUT);
 }
 
 
@@ -542,6 +597,11 @@ void initHAMQTTDevice() {
     vocEquivalent.setIcon("mdi:emoticon-poop");
     vocEquivalent.setName("AirPurifier VOC equivalent");
 
+    dustPM25.setUnitOfMeasurement("ug/m3");
+    dustPM25.setDeviceClass("pm25");
+    dustPM25.setIcon("mdi:weather-dust");
+    dustPM25.setName("AirPurifier PM2.5 (dust sensor)");
+
     // start server
     mqtt.begin(mqtt_server, 1883, mqtt_user, mqtt_pwd);
 }
@@ -557,16 +617,20 @@ void loopHAMQTTDevice() {
         lastSentAt = millis();
 
         //Send commom values
-        temp.setValue(iaqSensor.temperature);
-        humidity.setValue(iaqSensor.humidity);
-        pressure.setValue(iaqSensor.pressure / 100.0);
-        iaqAccuracy.setValue(iaqSensor.iaqAccuracy);
+        auto sensors = iaqSensor.getOutputs();
+        temp.setValue(sensors->output[BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE].signal);
+        humidity.setValue(sensors->output[BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY].signal);
+        pressure.setValue(sensors->output[BSEC_OUTPUT_RAW_PRESSURE].signal / 100.0);
+        iaqAccuracy.setValue(sensors->output[BSEC_OUTPUT_STABILIZATION_STATUS].signal);
 
-        //Send co2 & iaq only when stabilisation is at least at medium state (2)
-        if(iaqSensor.iaqAccuracy > 1) {
-          iaq.setValue(iaqSensor.iaq);
-          co2.setValue(iaqSensor.co2Equivalent);
-          vocEquivalent.setValue(iaqSensor.breathVocEquivalent);
+        if(!isnan(dust_density))
+            dustPM25.setValue(dust_density);
+
+        //Send co2 & iaq only when stabilisation is finished
+        if(sensors->output[BSEC_OUTPUT_STABILIZATION_STATUS].signal != 0) {
+            iaq.setValue(sensors->output[BSEC_OUTPUT_IAQ].signal);
+            co2.setValue(sensors->output[BSEC_OUTPUT_CO2_EQUIVALENT].signal);
+            vocEquivalent.setValue(sensors->output[BSEC_OUTPUT_BREATH_VOC_EQUIVALENT].signal);
         }
 
         //purifierMotor.setSpeed(iaqSensor.temperature);
@@ -582,17 +646,21 @@ void setup()
 {
   Serial.begin(115200);
 
-  initHAMQTTDevice();
-  //initMQTT();
+  initPurifierPins();
   initBME680();
   //initDustSensor();
+  initDigitalPot();
+
+  //initMQTT();
+  initHAMQTTDevice();
 }
 
 void loop()
 {
   loopBME680();
-  //loopMQTT();
   //loopDustSensor();
+
+  //loopMQTT();
   loopHAMQTTDevice();
 }
 
