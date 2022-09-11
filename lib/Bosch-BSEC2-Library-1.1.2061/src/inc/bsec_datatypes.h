@@ -87,10 +87,10 @@ extern "C"
 #define BSEC_MAX_PROPERTY_BLOB_SIZE  (2277)     /*!< Maximum size (in bytes) of the data blobs returned by bsec_get_configuration() */
 #define BSEC_MAX_STATE_BLOB_SIZE     (197)        /*!< Maximum size (in bytes) of the data blobs returned by bsec_get_state()*/
 #define BSEC_SAMPLE_RATE_DISABLED    (65535.0f)      /*!< Sample rate of a disabled sensor */
-#define BSEC_SAMPLE_RATE_ULP         (0.0033333f)           /*!< Sample rate in case of Ultra Low Power Mode */
-#define BSEC_SAMPLE_RATE_LP          (0.33333f)            /*!< Sample rate in case of Low Power Mode */
-#define BSEC_SAMPLE_RATE_ULP_MEASUREMENT_ON_DEMAND         (0.0f)            /*!< Input value used to trigger an extra measurment (ULP plus) */        
-#define BSEC_SAMPLE_RATE_HIGH_PERFORMANCE         (0.055556f)            /*!< Sample rate in case of high performance */
+#define BSEC_SAMPLE_RATE_ULP         (0.0033333f)           /*!< Sample rate in case of Ultra Low Power Mode (5 minutes) */
+#define BSEC_SAMPLE_RATE_LP          (0.33333f)            /*!< Sample rate in case of Low Power Mode (3 seconds) */
+#define BSEC_SAMPLE_RATE_ULP_MEASUREMENT_ON_DEMAND         (0.0f)            /*!< Input value used to trigger an extra measurment (ULP plus) */
+#define BSEC_SAMPLE_RATE_HIGH_PERFORMANCE         (0.055556f)            /*!< Sample rate in case of high performance (18 seconds) */
 
 #define BSEC_PROCESS_PRESSURE       (1 << (BSEC_INPUT_PRESSURE-1))      /*!< process_data bitfield constant for pressure @sa bsec_bme_settings_t */
 #define BSEC_PROCESS_TEMPERATURE    (1 << (BSEC_INPUT_TEMPERATURE-1))   /*!< process_data bitfield constant for temperature @sa bsec_bme_settings_t */
