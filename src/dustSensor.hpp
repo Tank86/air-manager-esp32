@@ -7,8 +7,8 @@ class DustSensor
 public:
     DustSensor() = default;
 
-    void initDustSensor();
-    void loopDustSensor();
+    void init();
+    void loop();
 
     void registercallBack(dustAcquiredCallback c);
 

@@ -44,7 +44,7 @@ void DustSensor::registercallBack(dustAcquiredCallback c)
     acquiredCallback = c;
 }
 
-void DustSensor::initDustSensor()
+void DustSensor::init()
 {
     // iled default closed
     pinMode(iled, OUTPUT);
@@ -53,7 +53,7 @@ void DustSensor::initDustSensor()
     Serial.println("Dust sensor initialised");
 }
 
-void DustSensor::loopDustSensor()
+void DustSensor::loop()
 {
     static uint32_t lastAcqTimer = millis();
     static uint32_t lastSendTimer = millis();
@@ -126,3 +126,4 @@ void DustSensor::loopDustSensor()
                 acquiredCallback(dust_density);
         }
     }
+}

@@ -19,7 +19,7 @@ void AirSensor::attachCallback(bsecCallback c)
     bmeSensor.attachCallback(c);
 }
 
-void AirSensor::initAirSensor(void)
+void AirSensor::init(void)
 {
     String output;
 
@@ -81,7 +81,7 @@ void AirSensor::initAirSensor(void)
         + String(bmeSensor.version.minor_bugfix));
 }
 
-void AirSensor::loopAirSensor(void)
+void AirSensor::loop(void)
 {
     /* Call the run function often so that the library can 
      * check if it is time to read new data from the sensor  

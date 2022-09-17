@@ -7,6 +7,7 @@
 #include <MCP40xx.h>
 #include "dustSensor.hpp"
 #include "airSensor.hpp"
+#include "ledStrip.hpp"
 
 
 // MCP40xx
@@ -19,6 +20,7 @@ const uint8_t Relay2_Pin = 12;
 
 DustSensor  dust;
 AirSensor   airStation;
+LedStrip    ledStrip;
 
 #ifdef HOMEASSISTANT
 WiFiClient espClient;
@@ -28,7 +30,7 @@ HAMqtt mqtt(espClient, device);
 // See https://www.home-assistant.io/integrations/sensor/#device-class
 // Need to add MQTT Light https://www.home-assistant.io/integrations/light.mqtt/
 //HASwitch led("led", false); // "led" is unique ID of the switch. You should define your own ID.
-HALight ledStrip("ledStrip"); //Is always automatic
+HALight leds("ledStrip"); //Is always automatic
 HAFan purifierMotor("motor", HAFan::SpeedsFeature); //AirPurifier Motor
 HASwitch autoMode("AutoMode", true);    //Represent the mode of the purifier (Automatic/manual)
 HASensor temp("temperature");
@@ -199,7 +201,7 @@ void onLedStateChanged(bool state)
     Serial.println("Led Strip State Changed " + String(state));
 
     //Send feedback
-    ledStrip.setState(state);
+    leds.setState(state);
 }
 
 
@@ -369,11 +371,11 @@ void initHAMQTTDevice()
     purifierMotor.setIcon("mdi:fan"); //mdi:air-purifier");
     purifierMotor.setName("AirPurifier speed");
 
-    ledStrip.onStateChanged(onLedStateChanged);
-    ledStrip.onBrightnessChanged(onLedBrightnessChanged);
-    ledStrip.onColorChanged(onLedColorChanged);
-    ledStrip.setIcon("mdi:lightbulb");
-    ledStrip.setName("AirPurifier strip");
+    leds.onStateChanged(onLedStateChanged);
+    leds.onBrightnessChanged(onLedBrightnessChanged);
+    leds.onColorChanged(onLedColorChanged);
+    leds.setIcon("mdi:lightbulb");
+    leds.setName("AirPurifier strip");
 
     temp.setUnitOfMeasurement("°C");
     temp.setDeviceClass("temperature");
@@ -454,10 +456,11 @@ void setup()
 
     initPurifierPins();
     initDigitalPot();
-    dust.initDustSensor();
+    dust.init();
     dust.registercallBack(onDustChanged);
-    airStation.initAirSensor();
+    airStation.init();
     airStation.attachCallback(onBMEDataChanged);
+    ledStrip.init();
 
     //initMQTT();
     initHAMQTTDevice();
@@ -465,8 +468,9 @@ void setup()
 
 void loop()
 {
-    airStation.loopAirSensor();
-    dust.loopDustSensor();
+    airStation.loop();
+    dust.loop();
+    ledStrip.loop();
 
     //loopMQTT();
     loopHAMQTTDevice();

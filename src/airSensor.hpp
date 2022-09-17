@@ -6,8 +6,8 @@ class AirSensor
 public:
     AirSensor() = default;
 
-    void initAirSensor();
-    void loopAirSensor();
+    void init();
+    void loop();
 
     void attachCallback(bsecCallback c);
 
