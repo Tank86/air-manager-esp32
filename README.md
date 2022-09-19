@@ -29,6 +29,7 @@ Libraries utilisées:
 
 
 PCB:
-![PCB By Me](https://github.com/Tank86/air-manager-esp32/blob/master/doc/AirPurifierBoardV1.1.png?raw=true)
+
+<img src="doc/AirPurifierBoardV1.1.png" width="350"/>
 
 Note: Send me message if you are interested on a PCB.
