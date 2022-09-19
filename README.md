@@ -2,7 +2,11 @@
 
 Pour purificateur d'air fait maison, idée originale des frères Poulain
 https://www.youtube.com/watch?v=WbyZMVf7Pek
+Modifiée pour un style rond et moins "mastoc"
 
+<p align="center">
+ <img src="/doc/PurificateurRaw.jpg" width="200"/>
+</p>
 
 Liens des composants:
  - Filtre charbon : https://amzn.to/3bw7p8R
@@ -30,6 +34,8 @@ Libraries utilisées:
 
 PCB:
 
-<img src="doc/AirPurifierBoardV1.1.png" width="350"/>
+<p align="center">
+ <img src="doc/AirPurifierBoardV1.1.png" width="350"/>
+</p>
 
-Note: Send me message if you are interested on a PCB.
+*Note: Send me message if you are interested on a PCB.*
