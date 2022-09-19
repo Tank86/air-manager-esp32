@@ -1,6 +1,8 @@
+#ifndef INCLUDE_DUST_SENSOR_HPP
+#define INCLUDE_DUST_SENSOR_HPP
+
 #include <Arduino.h>
 
-typedef void (*dustAcquiredCallback)(float dustValue);
 
 class DustSensor
 {
@@ -10,6 +12,7 @@ public:
     void init();
     void loop();
 
+    typedef void (*dustAcquiredCallback)(float dustValue);
     void registercallBack(dustAcquiredCallback c);
 
 
@@ -23,3 +26,5 @@ private:
     const uint8_t iled = 3; //A2;  //drive the led of sensor
     const uint8_t vout = 5; //A4;  //analog input
 };
+
+#endif

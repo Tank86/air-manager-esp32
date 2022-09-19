@@ -1,3 +1,6 @@
+#ifndef INCLUDE_AIR_SENSOR_HPP
+#define INCLUDE_AIR_SENSOR_HPP
+
 #include <Arduino.h>
 #include <bsec2.h>
 
@@ -23,3 +26,5 @@ private:
     Bsec2 bmeSensor;
     uint8_t bsecState[BSEC_MAX_STATE_BLOB_SIZE]{0};
 };
+
+#endif

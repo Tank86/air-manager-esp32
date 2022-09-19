@@ -8,6 +8,7 @@
 #include "dustSensor.hpp"
 #include "airSensor.hpp"
 #include "ledStrip.hpp"
+#include "purifierManager.hpp"
 
 
 // MCP40xx
@@ -18,6 +19,7 @@ MCP40xx pot = MCP40xx(POT_CSPin, POT_UDPin);
 const uint8_t Relay1_Pin = 11;
 const uint8_t Relay2_Pin = 12;
 
+PurifierManager manager;
 DustSensor  dust;
 AirSensor   airStation;
 LedStrip    ledStrip;
@@ -30,7 +32,7 @@ HAMqtt mqtt(espClient, device);
 // See https://www.home-assistant.io/integrations/sensor/#device-class
 // Need to add MQTT Light https://www.home-assistant.io/integrations/light.mqtt/
 //HASwitch led("led", false); // "led" is unique ID of the switch. You should define your own ID.
-HALight leds("ledStrip"); //Is always automatic
+HALight leds("ledStrip"); // Is always automatic
 HAFan purifierMotor("motor", HAFan::SpeedsFeature); //AirPurifier Motor
 HASwitch autoMode("AutoMode", true);    //Represent the mode of the purifier (Automatic/manual)
 HASensor temp("temperature");
@@ -41,11 +43,40 @@ HASensor iaq("iaq");                      // quality air index
 HASensor iaqAccuracy("iaqAccuracy");      // 0: stabilisation, 1, low, 2, medium, 3, high
 HASensor vocEquivalent("vocEquivalent");  // breath voc equivalent (ppm)
 HASensor dustPM25("pm25");
+#else
+//TODO some basic mqtt objects
 #endif
 
+///////// Manager Callbacks/////////////////
 
+void onManagerMotorSpeedChanged(uint8_t motorSpeedPercent)
+{
+    Serial.println("Fan speed Changed " + String(motorSpeedPercent));
 
-/////////Callbacks/////////////////
+    //Saturation
+    if (motorSpeedPercent > 100) motorSpeedPercent = 100;
+
+    uint16_t potPos = ((motorSpeedPercent * 64) / 100);
+
+    //Assign pot value according to speed
+    pot.setTap(potPos);
+
+    //Update mqtt state
+    purifierMotor.setState(motorSpeedPercent != 0);
+    purifierMotor.setSpeed(motorSpeedPercent);
+}
+
+void onManagerLedColorChanged(uint8_t red, uint8_t green, uint8_t blue)
+{
+    Serial.println("Led Strip Color Changed " + String(red) + ", " + String(green) + ", " + String(blue));
+    ledStrip.set(64, red, green, blue);
+
+    //Update mqtt state
+    leds.setBrightness(64);
+    leds.setColor(red, green, blue);
+}
+
+///////// MQTT Callbacks/////////////////
 void onBMEDataChanged(const bme68xData data, const bsecOutputs outputs, Bsec2 bsec)
 {
     if (!outputs.nOutputs)
@@ -126,38 +157,47 @@ void onBMEDataChanged(const bme68xData data, const bsecOutputs outputs, Bsec2 bs
             Serial.println("\t!!!OUCH SENSOR UNKNOWN = " + String(output.sensor_id) + String(output.signal));
             break;
         }
+
+        //Send sensor value to process
+        manager.process(output);
     }
 }
 
 void onDustChanged(float dust)
 {
-    dustPM25.setValue(dust, 0);
-}
+    static uint32_t lastSendTimer = millis();
 
+    //Process automatic mode
+    manager.process(dust);
+
+    //Manage mqtt send
+    if ((millis() - lastSendTimer) > (5 * 60 * 1000))
+    {
+        lastSendTimer = millis();
+        dustPM25.setValue(dust, 0);
+    }
+}
 
 void onAutoModeChanged(bool state, HASwitch* s)
 {
-    s->setState(state);
-
-    //Auto mode activated
-    if(state == true)
-    {
-        //TODO
-    }
+    if(state)
+        Serial.println("Automatic mode enabled");
     else
-    {
-        //TODO
-    }
+        Serial.println("Automatic mode disabled");
+
+    s->setState(state);
+    manager.setAutoMode(state);
 }
 
 void onPurifierMotorSpeedChanged(uint16_t speed)
 {
     Serial.println("Fan speed received " + String(speed));
 
-    if(autoMode.getState() == true)
+    if(autoMode.getState())
     {
         //Auto mode disabled
-        autoMode.setState(false);
+        //autoMode.setState(false); //FIXME: in the lib ????
+        //manager.setAutoMode(false);  //FIXME: in the lib ????
     }
 
     //Saturation
@@ -172,10 +212,11 @@ void onPurifierMotorStateChanged(bool state)
 {
     Serial.println("Fan state received " + String(state));
 
-    if(autoMode.getState() == true)
+    if(autoMode.getState())
     {
         //Auto mode disabled
-        autoMode.setState(false);
+        //autoMode.setState(false); //FIXME: in the lib ????
+        //manager.setAutoMode(false);  //FIXME: in the lib ????
     }
 
     //send instant feedback
@@ -188,17 +229,20 @@ void onPurifierMotorStateChanged(bool state)
 
 void onLedBrightnessChanged(uint8_t brightness)
 {
-    Serial.println("Led Strip Brightness Changed " + String(brightness));
+    Serial.println("Led Strip Brightness Received " + String(brightness));
+    ledStrip.setBrightness(brightness);
 }
 
 void onLedColorChanged(uint8_t red, uint8_t green, uint8_t blue)
 {
-    Serial.println("Led Strip Color Changed " + String(red) + ", " + String(green) + ", " + String(blue));
+    Serial.println("Led Strip Color Received " + String(red) + ", " + String(green) + ", " + String(blue));
+    ledStrip.setColor(red, green, blue);
 }
 
 void onLedStateChanged(bool state)
 {
-    Serial.println("Led Strip State Changed " + String(state));
+    Serial.println("Led Strip State Received " + String(state));
+    ledStrip.setState(state);
 
     //Send feedback
     leds.setState(state);
@@ -207,39 +251,39 @@ void onLedStateChanged(bool state)
 
 
 
-///////////////////////////////////////
-
-#include <wifiCredentials.hpp>
-//const char* ssid = "";
-//const char* password = "";
+///////// MQTT communication ////////
+//const char* wifi_ssid = "";
+//const char* wifi_password = "";
 //const char* mqtt_server = "homeassistant.local";
 //const char* mqtt_user = "";
 //const char* mqtt_pwd = "";
+//const uint16_t   mqtt_port = 1883;
+/* /!\ The previous data has to be filled here of inside a private wifiCredentials.hpp /!\ */
+#include <wifiCredentials.hpp>
+
+void initWIFI() 
+{
+    // Unique ID must be set!
+    byte mac[6]; //WL_MAC_ADDR_LENGTH];
+    WiFi.macAddress(mac);
+    device.setUniqueId(mac, sizeof(mac));
+
+    // connect to wifi
+    Serial.println("Connecting to " + String(wifi_ssid));
+    WiFi.begin(wifi_ssid, wifi_password);
+    while (WiFi.status() != WL_CONNECTED) {
+        Serial.print(".");
+        delay(500); // waiting for the connection
+    }
+
+    Serial.println("Connected !");
+    Serial.println("IP address: " + WiFi.localIP().toString());
+}
 
 #ifndef HOMEASSISTANT
 WiFiClient espClient;
 PubSubClient client(espClient);
 long lastMsg = 0;
-
-void setup_wifi() {
-    delay(10);
-    // We start by connecting to a WiFi network
-    Serial.println();
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
-
-    WiFi.begin(ssid, password);
-
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-
-    Serial.println("");
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-}
 
 void callbackMQTT(char* topic, byte* message, unsigned int length) {
     Serial.print("Message arrived on topic: ");
@@ -289,8 +333,7 @@ void reconnect() {
 }
 
 void initMQTT(void) {
-    setup_wifi();
-    client.setServer(mqtt_server, 1883);
+    client.setServer(mqtt_server, mqtt_port);
     client.setCallback(callbackMQTT);
 }
 
@@ -337,22 +380,8 @@ void loopMQTT() {
 #else
 /////////////////// Home assistant device ///////////
 
-void initHAMQTTDevice() 
+void initMQTT() 
 {
-    // Unique ID must be set!
-    byte mac[6]; //WL_MAC_ADDR_LENGTH];
-    WiFi.macAddress(mac);
-    device.setUniqueId(mac, sizeof(mac));
-
-    // connect to wifi
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) {
-        Serial.print(".");
-        delay(500); // waiting for the connection
-    }
-    Serial.println();
-    Serial.println("Connected to the network");
-
     // set device's details (optional)
     device.setName("air-manager");
     device.setManufacturer("Tank86 electronics");
@@ -416,18 +445,18 @@ void initHAMQTTDevice()
     dustPM25.setName("AirPurifier PM2.5 (dust sensor)");
 
     // start server
-    mqtt.begin(mqtt_server, 1883, mqtt_user, mqtt_pwd);
+    mqtt.begin(mqtt_server, mqtt_port, mqtt_user, mqtt_pwd);
 }
 
-void loopHAMQTTDevice() 
+void loopMQTT() 
 {
     mqtt.loop();
 }
 
 #endif
+/////////////////////////////////////////////////////////////////////
 
-
-////////////////////////////////////////////////
+////////// Purifier Code /////////////
 void initPurifierPins()
 {
     pinMode(BUILTIN_LED, OUTPUT);
@@ -448,7 +477,7 @@ void setup()
     Serial.begin(115200);
     /* Valid for boards with USB-COM. Wait until the port is open */
     //while(!Serial) delay(10);
-    for (int i = 10; i > 0; i--)
+    for (int i = 8; i > 0; i--)
     {
         Serial.println(i);
         delay(1000);
@@ -462,18 +491,24 @@ void setup()
     airStation.attachCallback(onBMEDataChanged);
     ledStrip.init();
 
-    //initMQTT();
-    initHAMQTTDevice();
+    manager.registerMotorSpeedcallBack(onManagerMotorSpeedChanged);
+    manager.registerLedColorcallBack(onManagerLedColorChanged);
+
+    initWIFI();
+    initMQTT();
 }
 
 void loop()
 {
+    //Sensors loop
     airStation.loop();
     dust.loop();
+
+    //Actuators
     ledStrip.loop();
 
-    //loopMQTT();
-    loopHAMQTTDevice();
+    //Communication
+    loopMQTT();
 }
 
 /////////////////// ARDUINO CODE //////////////
