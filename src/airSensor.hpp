@@ -25,6 +25,7 @@ private:
 
     Bsec2 bmeSensor;
     uint8_t bsecState[BSEC_MAX_STATE_BLOB_SIZE]{0};
+    bool initOK{false};
 };
 
 #endif

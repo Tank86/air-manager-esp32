@@ -9,7 +9,7 @@
 uint16_t DustSensor::Filter(uint16_t m)
 {
     const size_t _buff_max = 10;
-    static uint16_t _buff[10];
+    static uint16_t _buff[10] = {0};
     static int flag_first = 0, sum;
     uint16_t i;
 

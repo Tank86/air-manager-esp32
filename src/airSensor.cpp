@@ -53,24 +53,29 @@ void AirSensor::init(void)
     if (!bmeSensor.begin(BME68X_I2C_ADDR_HIGH, Wire))
     {
         checkBsecStatus(bmeSensor);
+        initOK = false;
     }
-
     /* Load the configuration string that stores information on how to classify the detected gas */
-    if (0)// (!bmeSensor.setConfig(FieldAir_HandSanitizer_config))
+    else if (0)// (!bmeSensor.setConfig(FieldAir_HandSanitizer_config))
     {
         checkBsecStatus(bmeSensor);
+        initOK = false;
     }
-
     /* Copy state from the EEPROM to the algorithm */
-    if (!loadState(bmeSensor))
+    else if (!loadState(bmeSensor))
     {
         checkBsecStatus(bmeSensor);
+        initOK = false;
     }
-
     /* Subsribe to the desired BSEC2 outputs */
-    if (!bmeSensor.updateSubscription(sensorList, ARRAY_LEN(sensorList), BSEC_SAMPLE_RATE_ULP));// BSEC_SAMPLE_RATE_HIGH_PERFORMANCE))
+    else if (!bmeSensor.updateSubscription(sensorList, ARRAY_LEN(sensorList), BSEC_SAMPLE_RATE_ULP))// BSEC_SAMPLE_RATE_HIGH_PERFORMANCE))
     {
         checkBsecStatus(bmeSensor);
+        initOK = false;
+    }
+    else
+    {
+        initOK = true;
     }
 
 
@@ -83,11 +88,13 @@ void AirSensor::init(void)
 
 void AirSensor::loop(void)
 {
-    /* Call the run function often so that the library can 
-     * check if it is time to read new data from the sensor  
-     * and process it.
-     */
-    if (!bmeSensor.run())
+    // Check if init was done ok, else, the sensor.run() will reboot the board... 
+    if(!initOK)
+    {
+        errLeds();
+    }
+    // Call the run function often so that the library can check if it is time to read new data from the sensor and process it.
+    else if (!bmeSensor.run())
     {
         checkBsecStatus(bmeSensor);
     }
