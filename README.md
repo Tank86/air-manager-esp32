@@ -9,7 +9,7 @@ Liens des composants:
  - Filtre HEPA 13 : https://amzn.to/3HPSuT1
  - Turbine Variable : https://amzn.to/3yemHH5
  - Tissu 3D : https://lfp.yt/tissu
- - Bois
+ - Contreplaqué
  - Tiges filletés M6
  - Ecrou
  - Rondelles
