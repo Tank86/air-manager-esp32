@@ -1,4 +1,4 @@
-# Code pour Purificateur d'air (esp32 et esp32-s2 compatible)
+# Code pour Purificateur d'air (Wemos-s2, Wemos-c3, Wemos D1-32)
 
 Pour purificateur d'air fait maison, idée originale des frères Poulain
 https://www.youtube.com/watch?v=WbyZMVf7Pek
@@ -21,7 +21,9 @@ Liens des composants:
 Libraries utilisées
 - Bsec 2
 - MCP40xx
-- home assistant integration
+- home assistant integration (My Fork for Light support and Fan icon)
 - FastLed
 
-Capteur de particules : https://www.waveshare.com/wiki/Dust_Sensor
+Capteur de particules : https://global.sharp/products/device/lineup/data/pdf/datasheet/gp2y1010au_appl_e.pdf
+Capteur de qualité de l'air: https://www.adafruit.com/product/3660
+Led WS2818: https://www.adafruit.com/product/1138
