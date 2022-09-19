@@ -460,7 +460,13 @@ void loopMQTT()
 ////////// Purifier Code /////////////
 void initPurifierPins()
 {
-    pinMode(BUILTIN_LED, OUTPUT);
+#if defined(ARDUINO_ARCH_ESP32_C3)
+    //Lolin ESP32_C3 has builtin RGB led
+    static const uint8_t LED_BUILTIN = 7;
+    pinMode(LED_BUILTIN, OUTPUT);
+#else
+    pinMode(LED_BUILTIN, OUTPUT);
+#endif
     pinMode(Relay1_Pin, OUTPUT);
     pinMode(Relay2_Pin, OUTPUT);
 }
