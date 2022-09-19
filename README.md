@@ -8,22 +8,21 @@ Liens des composants:
  - Filtre charbon : https://amzn.to/3bw7p8R
  - Filtre HEPA 13 : https://amzn.to/3HPSuT1
  - Turbine Variable : https://amzn.to/3yemHH5
- - Led Strip 2812b : https://amzn.to/3Og5x2p
- - Capteur de particules PM2.5 : https://amzn.to/3OoqRmu
  - Tissu 3D : https://lfp.yt/tissu
  - Bois
  - Tiges filletés M6
  - Ecrou
  - Rondelles
  
+Capteurs:
+- Capteur de particules : https://global.sharp/products/device/lineup/data/pdf/datasheet/gp2y1010au_appl_e.pdf
+- Capteur de qualité de l'air: https://www.adafruit.com/product/3660
+- Led WS2818: https://www.adafruit.com/product/1138
 
-
-Libraries utilisées
+Libraries utilisées:
 - Bsec 2
 - MCP40xx
 - home assistant integration (My Fork for Light support and Fan icon)
 - FastLed
 
-Capteur de particules : https://global.sharp/products/device/lineup/data/pdf/datasheet/gp2y1010au_appl_e.pdf
-Capteur de qualité de l'air: https://www.adafruit.com/product/3660
-Led WS2818: https://www.adafruit.com/product/1138
+
