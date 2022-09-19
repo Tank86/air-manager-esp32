@@ -9,7 +9,7 @@ Liens des composants:
  - Filtre HEPA 13 : https://amzn.to/3HPSuT1
  - Turbine Variable : https://amzn.to/3yemHH5
  - Tissu 3D : https://lfp.yt/tissu
- - Bois
+ - Contreplaqué
  - Tiges filletés M6
  - Ecrou
  - Rondelles
@@ -29,6 +29,7 @@ Libraries utilisées:
 
 
 PCB:
-![PCB By Me](https://github.com/Tank86/air-manager-esp32/blob/master/src/AirPurifierBoardV1.1.png?raw=true)
+
+<img src="doc/AirPurifierBoardV1.1.png" width="350"/>
 
 Note: Send me message if you are interested on a PCB.
