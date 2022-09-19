@@ -50,7 +50,8 @@ void LedStrip::set(uint8_t brightness, uint8_t red, uint8_t green, uint8_t blue)
 
 void LedStrip::setColor(uint8_t red, uint8_t green, uint8_t blue)
 {
-    FastLED.showColor(CRGB(red, green, blue));
+    fill_solid(leds, NUM_LEDS, CRGB(red,green,blue));
+    FastLED.show();
 }
 
 void LedStrip::setState(bool active)

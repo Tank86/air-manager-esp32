@@ -74,6 +74,7 @@ void onManagerLedColorChanged(uint8_t red, uint8_t green, uint8_t blue)
     //Update mqtt state
     leds.setBrightness(64);
     leds.setColor(red, green, blue);
+    leds.setState(true);
 }
 
 ///////// MQTT Callbacks/////////////////
