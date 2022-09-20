@@ -2,8 +2,10 @@
 
 Pour purificateur d'air fait maison, idée originale des frères Poulain
 https://www.youtube.com/watch?v=WbyZMVf7Pek
+
 Modifiée pour un style rond et moins "mastoc"
 Ajout d'électronique pour le domotiser avec un mode automatique et ainsi qu'un mode fonctionnant avec HomeAssistant (ou tout autre domotique mqtt)
+L'electronique permet de piloter/moduler également la vitesse du moteur.
 
 <p align="center">
  <img src="/doc/PurificateurRaw.jpg" width="200"/>
