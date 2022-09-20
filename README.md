@@ -3,6 +3,14 @@
 Pour purificateur d'air fait maison, idée originale des frères Poulain
 https://www.youtube.com/watch?v=WbyZMVf7Pek
 
+Modifiée pour un style rond et moins "mastoc".
+
+Ajout d'électronique pour le domotiser avec un mode automatique et ainsi qu'un mode fonctionnant avec HomeAssistant (ou tout autre domotique mqtt)
+L'electronique permet de piloter/moduler également la vitesse du moteur.
+
+<p align="center">
+ <img src="/doc/PurificateurRaw.jpg" width="200"/>
+</p>
 
 Liens des composants:
  - Filtre charbon : https://amzn.to/3bw7p8R
@@ -20,9 +28,9 @@ Capteurs:
 - Led WS2818: https://www.adafruit.com/product/1138
 
 Libraries utilisées:
-- Bsec 2
-- MCP40xx
-- home assistant integration (My Fork for Light support and Fan icon)
+- Bsec 2 (avec l'ajout du support des esp32-s2 et esp32-c3)
+- MCP40xx [https://github.com/dzalf/MCP40xx_Digital_Potentiometer]
+- home assistant integration (My Fork for Light support and Fan icon)[https://github.com/Tank86/arduino-home-assistant]
 - FastLed
 
 
@@ -30,6 +38,8 @@ Libraries utilisées:
 
 PCB:
 
-<img src="doc/AirPurifierBoardV1.1.png" width="350"/>
+<p align="center">
+ <img src="doc/AirPurifierBoardV1.1.png" width="350"/>
+</p>
 
-Note: Send me message if you are interested on a PCB.
+*Note: Send me message if you are interested on a PCB.*
