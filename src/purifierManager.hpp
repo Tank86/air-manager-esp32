@@ -35,6 +35,7 @@ private:
     float sensor_iaq{nanf("")};
 
     void process();
+    float interpolate(float val, float x0, float x1, float y0, float y1, bool saturate = true);
 };
 
 #endif

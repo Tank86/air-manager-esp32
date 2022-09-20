@@ -73,44 +73,32 @@ void PurifierManager::process()
     if((setMotorSpeed == nullptr) || (setLedColor == nullptr))
         return;
 
-    //Mode off
-    if((sensor_dust < 30.0) || (sensor_iaq < 50.0))
+
+
+    //linear interpolaton of sensors, then take the worst case
+    uint32_t dust_level = isnan(sensor_dust) ? 0 : interpolate(sensor_dust, 35, 300, 0, 255);
+    uint32_t iaq_level = isnan(sensor_iaq) ? 0 : interpolate(sensor_iaq, 50, 300, 0, 255);
+    uint32_t max_level = max(dust_level, iaq_level);
+    uint32_t max_level_percent = (max_level * 100) / 255;
+ 
+    //Set motor speed & led accordingly 
+    // - off/green if air quality is ok
+    // - linearily interporlated speed/color for each intermediate values
+    // - full/red  if quality is very bad
+    setMotorSpeed(max_level_percent);
+    setLedColor(max_level, (255-max_level), 0);
+}
+
+
+float PurifierManager::interpolate(float val, float x0, float x1, float y0, float y1, bool saturate)
+{
+    if(saturate)
     {
-        //Set motor off
-        setMotorSpeed(0);
-        //Set led green
-        setLedColor(0, 255, 0);
+        if( val < x0) return y0;
+        else if( val > x1) return y1;
     }
-    //Mode slow
-    else if ((sensor_dust < 100.0) || (sensor_iaq < 100.0))
-    {
-        //Set motor slow speed
-        setMotorSpeed(20);
-        //Set led yellow
-        setLedColor(255, 255, 0);
-    }
-    //Mode Medium
-    else if ((sensor_dust < 200.0) || (sensor_iaq < 200.0))
-    {
-        //Set motor medium speed
-        setMotorSpeed(50);
-        //Set led orange
-        setLedColor(255, 128, 0);
-    }
-    //Mode Fast
-    else if ((sensor_dust < 300.0) || (sensor_iaq < 300.0))
-    {
-        //Set motor fast speed
-        setMotorSpeed(75);
-        //Set led red
-        setLedColor(255, 0, 0);
-    }
-    //Full speed
-    else
-    {
-        //Set motor full speed
-        setMotorSpeed(100);
-        //Set led purple
-        setLedColor(128, 0, 128);
-    }
+
+    float numerator = y0 * (x1 - val) + y1 * (val - x0);
+    float denominator = x1 - x0;
+    return numerator / denominator;
 }
