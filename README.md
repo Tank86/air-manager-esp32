@@ -30,7 +30,7 @@ Capteurs:
 Libraries utilisées:
 - Bsec 2
 - MCP40xx
-- home assistant integration (My Fork for Light support and Fan icon)
+- home assistant integration (My Fork for Light support and Fan icon)[https://github.com/Tank86/arduino-home-assistant]
 - FastLed
 
 
