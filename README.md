@@ -28,8 +28,8 @@ Capteurs:
 - Led WS2818: https://www.adafruit.com/product/1138
 
 Libraries utilisées:
-- Bsec 2
-- MCP40xx
+- Bsec 2 (avec l'ajout du support des esp32-s2 et esp32-c3)
+- MCP40xx [https://github.com/dzalf/MCP40xx_Digital_Potentiometer]
 - home assistant integration (My Fork for Light support and Fan icon)[https://github.com/Tank86/arduino-home-assistant]
 - FastLed
 
