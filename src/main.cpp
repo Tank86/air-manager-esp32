@@ -9,6 +9,7 @@
 #include "airSensor.hpp"
 #include "ledStrip.hpp"
 #include "purifierManager.hpp"
+#include "WiFiManager.hpp"
 
 
 // MCP40xx
@@ -19,10 +20,11 @@ MCP40xx pot = MCP40xx(POT_CSPin, POT_UDPin);
 const uint8_t Relay1_Pin = 11;
 const uint8_t Relay2_Pin = 12;
 
-PurifierManager manager;
-DustSensor  dust;
-AirSensor   airStation;
-LedStrip    ledStrip;
+ParameterManager     wifiManager;
+PurifierManager airManager;
+DustSensor      sensorDust;
+AirSensor       sensorAir;
+LedStrip        ledStrip;
 
 #ifdef HOMEASSISTANT
 WiFiClient espClient;
@@ -160,7 +162,7 @@ void onBMEDataChanged(const bme68xData data, const bsecOutputs outputs, Bsec2 bs
         }
 
         //Send sensor value to process
-        manager.process(output);
+        airManager.process(output);
     }
 }
 
@@ -169,7 +171,7 @@ void onDustChanged(float dust)
     static uint32_t lastSendTimer = millis();
 
     //Process automatic mode
-    manager.process(dust);
+    airManager.process(dust);
 
     //Manage mqtt send
     if ((millis() - lastSendTimer) > (5 * 60 * 1000))
@@ -187,7 +189,7 @@ void onAutoModeChanged(bool state, HASwitch* s)
         Serial.println("Automatic mode disabled");
 
     s->setState(state);
-    manager.setAutoMode(state);
+    airManager.setAutoMode(state);
 }
 
 void onPurifierMotorSpeedChanged(uint16_t speed)
@@ -198,7 +200,7 @@ void onPurifierMotorSpeedChanged(uint16_t speed)
     {
         //Auto mode disabled
         //autoMode.setState(false); //FIXME: in the lib ????
-        //manager.setAutoMode(false);  //FIXME: in the lib ????
+        //airManager.setAutoMode(false);  //FIXME: in the lib ????
     }
 
     //Saturation
@@ -217,7 +219,7 @@ void onPurifierMotorStateChanged(bool state)
     {
         //Auto mode disabled
         //autoMode.setState(false); //FIXME: in the lib ????
-        //manager.setAutoMode(false);  //FIXME: in the lib ????
+        //airManager.setAutoMode(false);  //FIXME: in the lib ????
     }
 
     //send instant feedback
@@ -262,16 +264,16 @@ void onLedStateChanged(bool state)
 /* /!\ The previous data has to be filled here of inside a private wifiCredentials.hpp /!\ */
 #include <wifiCredentials.hpp>
 
-void initWIFI() 
+void initWIFI(const char* ssid, const char* password)
 {
     // Unique ID must be set!
     byte mac[6]; //WL_MAC_ADDR_LENGTH];
     WiFi.macAddress(mac);
     device.setUniqueId(mac, sizeof(mac));
 
-    // connect to wifi
-    Serial.println("Connecting to " + String(wifi_ssid));
-    WiFi.begin(wifi_ssid, wifi_password);
+    // Connect to wifi
+    Serial.println("Connecting to " + String(ssid));
+    WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
         Serial.print(".");
         delay(500); // waiting for the connection
@@ -381,7 +383,7 @@ void loopMQTT() {
 #else
 /////////////////// Home assistant device ///////////
 
-void initMQTT() 
+void initMQTT(const char* address, uint16_t port, const char* user, const char* pwd) 
 {
     // set device's details (optional)
     device.setName("air-manager");
@@ -445,8 +447,8 @@ void initMQTT()
     dustPM25.setIcon("mdi:weather-dust");
     dustPM25.setName("AirPurifier PM2.5 (dust sensor)");
 
-    // start server
-    mqtt.begin(mqtt_server, mqtt_port, mqtt_user, mqtt_pwd);
+    // Connect to MQTT server
+    mqtt.begin(address, port, user, pwd);
 }
 
 void loopMQTT() 
@@ -490,26 +492,34 @@ void setup()
         delay(1000);
     }
 
+    //Start 1024 bytes of EEPROM
+    EEPROM.begin(1024); //Need BSEC_MAX_STATE_BLOB_SIZE(197 bytes) for BME680 +  512 bytes for Wifi credentials
+
+
     initPurifierPins();
     initDigitalPot();
-    dust.init();
-    dust.registercallBack(onDustChanged);
-    airStation.init();
-    airStation.attachCallback(onBMEDataChanged);
+    sensorDust.init();
+    sensorDust.registercallBack(onDustChanged);
+    sensorAir.init(0); //EEPROM Base Address 0
+    sensorAir.attachCallback(onBMEDataChanged);
     ledStrip.init();
 
-    manager.registerMotorSpeedcallBack(onManagerMotorSpeedChanged);
-    manager.registerLedColorcallBack(onManagerLedColorChanged);
+    airManager.registerMotorSpeedcallBack(onManagerMotorSpeedChanged);
+    airManager.registerLedColorcallBack(onManagerLedColorChanged);
 
-    initWIFI();
-    initMQTT();
+    //This method is blocking while all data are not initalized. so 
+    wifiManager.loadParameters(256, true);  //EPROM Base address //BME680 need 197 bytes, so start at @256
+
+
+    initWIFI(wifi_ssid, wifi_password);
+    initMQTT(mqtt_server, mqtt_port, mqtt_user, mqtt_pwd);
 }
 
 void loop()
 {
     //Sensors loop
-    airStation.loop();
-    dust.loop();
+    sensorAir.loop();
+    sensorDust.loop();
 
     //Actuators
     ledStrip.loop();

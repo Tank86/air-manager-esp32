@@ -9,7 +9,7 @@ class AirSensor
 public:
     AirSensor() = default;
 
-    void init();
+    void init(uint16_t EEPROM_BaseAddress);
     void loop();
 
     void attachCallback(bsecCallback c);
@@ -26,6 +26,7 @@ private:
     Bsec2 bmeSensor;
     uint8_t bsecState[BSEC_MAX_STATE_BLOB_SIZE]{0};
     bool initOK{false};
+    uint16_t EEPROM_BaseAddress{0};
 };
 
 #endif

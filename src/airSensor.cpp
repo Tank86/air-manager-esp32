@@ -19,12 +19,12 @@ void AirSensor::attachCallback(bsecCallback c)
     bmeSensor.attachCallback(c);
 }
 
-void AirSensor::init(void)
+void AirSensor::init(uint16_t EE_Address)
 {
     String output;
 
     Wire.begin();
-    EEPROM.begin(BSEC_MAX_STATE_BLOB_SIZE + 1);
+    EEPROM_BaseAddress = EE_Address;
 
     /* Desired subscription list of BSEC2 outputs */
     bsecSensor sensorList[] = {
@@ -134,14 +134,14 @@ void AirSensor::checkBsecStatus(Bsec2 bsec)
 
 bool AirSensor::loadState(Bsec2 bsec)
 {
-    if (EEPROM.read(0) == BSEC_MAX_STATE_BLOB_SIZE)
+    if (EEPROM.read(EEPROM_BaseAddress + 0) == BSEC_MAX_STATE_BLOB_SIZE)
     {
         /* Existing state in EEPROM */
         Serial.println("Reading state from EEPROM");
         Serial.print("State file: ");
         for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE; i++)
         {
-            bsecState[i] = EEPROM.read(i + 1);
+            bsecState[i] = EEPROM.read(EEPROM_BaseAddress + i + 1);
             Serial.print(String(bsecState[i], HEX) + ", ");
         }
         Serial.println();
@@ -155,7 +155,7 @@ bool AirSensor::loadState(Bsec2 bsec)
         Serial.println("Erasing EEPROM");
 
         for (uint8_t i = 0; i <= BSEC_MAX_STATE_BLOB_SIZE; i++)
-            EEPROM.write(i, 0);
+            EEPROM.write(EEPROM_BaseAddress + i, 0);
 
         EEPROM.commit();
     }
@@ -173,12 +173,12 @@ bool AirSensor::saveState(Bsec2 bsec)
 
     for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE; i++)
     {
-        EEPROM.write(i + 1, bsecState[i]);
+        EEPROM.write(EEPROM_BaseAddress + i + 1, bsecState[i]);
         Serial.print(String(bsecState[i], HEX) + ", ");
     }
     Serial.println();
 
-    EEPROM.write(0, BSEC_MAX_STATE_BLOB_SIZE);
+    EEPROM.write(EEPROM_BaseAddress + 0, BSEC_MAX_STATE_BLOB_SIZE);
     EEPROM.commit();
 
     return true;

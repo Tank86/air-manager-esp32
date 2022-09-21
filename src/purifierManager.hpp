@@ -10,11 +10,9 @@ public:
     PurifierManager() = default;
 
     void process(float dust);
-
     void process(const bsecData sensor);
 
     bool isAutoModeActive() const { return autoModeActive; }
-
     void setAutoMode(bool active);
 
     typedef void (*changeMotorSpeedCBK)(uint8_t motorPercent);
