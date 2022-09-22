@@ -5,10 +5,10 @@
 #include <WebServer.h>
 
 
-class ParameterManager
+class CredentialsManager
 {
 public:
-    ParameterManager() = default;
+    CredentialsManager() = default;
 
     void loadParameters(uint16_t EEPROM_BaseAddress, bool forcedShowAP);
     String getWifiSSID() const { return Wifi_SSID; }

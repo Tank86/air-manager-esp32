@@ -9,7 +9,7 @@
 #include "airSensor.hpp"
 #include "ledStrip.hpp"
 #include "purifierManager.hpp"
-#include "WiFiManager.hpp"
+#include "CredentialsManager.hpp"
 
 
 // MCP40xx
@@ -20,7 +20,7 @@ MCP40xx pot = MCP40xx(POT_CSPin, POT_UDPin);
 const uint8_t Relay1_Pin = 11;
 const uint8_t Relay2_Pin = 12;
 
-ParameterManager     wifiManager;
+CredentialsManager credentials;
 PurifierManager airManager;
 DustSensor      sensorDust;
 AirSensor       sensorAir;
@@ -508,7 +508,7 @@ void setup()
     airManager.registerLedColorcallBack(onManagerLedColorChanged);
 
     //This method is blocking while all data are not initalized. so 
-    wifiManager.loadParameters(256, true);  //EPROM Base address //BME680 need 197 bytes, so start at @256
+    credentials.loadParameters(256, true);  //EPROM Base address //BME680 need 197 bytes, so start at @256
 
 
     initWIFI(wifi_ssid, wifi_password);

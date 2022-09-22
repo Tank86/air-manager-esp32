@@ -1,14 +1,14 @@
-#include "WiFiManager.hpp"
+#include "CredentialsManager.hpp"
 #include "WifiPage.h"
 #include "EEPROM.h"
 
-uint16_t ParameterManager::EEPROM_BaseAddress{0};
-WebServer ParameterManager::server{IPAddress{192,168,4,1}, 80};
+uint16_t CredentialsManager::EEPROM_BaseAddress{0};
+WebServer CredentialsManager::server{IPAddress{192,168,4,1}, 80};
 
 /*
 * Function to handle unknown URLs
 */
-void ParameterManager::handleNotFound()
+void CredentialsManager::handleNotFound()
 {
     String message{"File Not Found\n\n"};
     message += "URI: ";
@@ -29,7 +29,7 @@ void ParameterManager::handleNotFound()
 /*
 * Function for home page
 */
-void  ParameterManager::handleRoot()
+void  CredentialsManager::handleRoot()
 {
     if (server.hasArg("wifi_ssid") && 
         server.hasArg("wifi_pwd") && 
@@ -86,7 +86,7 @@ void  ParameterManager::handleRoot()
 * Function for loading form
 * Returns: false if no WiFi creds in EEPROM
 */
-void ParameterManager::runAPServer()
+void CredentialsManager::runAPServer()
 {
     const char* ssid = "ESP32 Air Purifier";
 
@@ -105,7 +105,7 @@ void ParameterManager::runAPServer()
     Serial.println("HTTP server started");
 }
 
-bool ParameterManager::waitReboot()
+bool CredentialsManager::waitReboot()
 {
     while (true) 
     {
@@ -116,7 +116,7 @@ bool ParameterManager::waitReboot()
     return false;
 }
 
-void ParameterManager::initEEPROMArea() 
+void CredentialsManager::initEEPROMArea() 
 {
     for (uint32_t i = 0; i < 512; i++) 
     {
@@ -130,7 +130,7 @@ void ParameterManager::initEEPROMArea()
 * Function checking WiFi creds in memory
 * Returns: true if not empty, false if empty
 */
-bool  ParameterManager::isEEPROMContentValid()
+bool CredentialsManager::isEEPROMContentValid()
 {
     Serial.println("Checking EEPROM content");
     uint32_t magicKey = EEPROM.readUInt(EEPROM_BaseAddress + EE_OFFSET_MAGICKEY);
@@ -139,7 +139,7 @@ bool  ParameterManager::isEEPROMContentValid()
 }
 
 
-void ParameterManager::loadEEPROMData()
+void CredentialsManager::loadEEPROMData()
 {
     char buffer[100];
 
@@ -161,7 +161,7 @@ void ParameterManager::loadEEPROMData()
 * Function for writing creds to EEPROM
 * Returns: true if save successful, false if unsuccessful
 */
-bool ParameterManager::writeCredentials(String wifi_ssid, String wifi_pwd, String mqtt_add, uint16_t mqtt_port, String mqtt_usr, String mqtt_pwd)
+bool CredentialsManager::writeCredentials(String wifi_ssid, String wifi_pwd, String mqtt_add, uint16_t mqtt_port, String mqtt_usr, String mqtt_pwd)
 {
     char buffer[100];
 
@@ -193,7 +193,7 @@ bool ParameterManager::writeCredentials(String wifi_ssid, String wifi_pwd, Strin
 }
 
 
-void ParameterManager::loadParameters(uint16_t EE_BaseAddr, bool forcedShowAP)
+void CredentialsManager::loadParameters(uint16_t EE_BaseAddr, bool forcedShowAP)
 {
     EEPROM_BaseAddress = EE_BaseAddr;
 
