@@ -1,10 +1,9 @@
 #include "dustSensor.hpp"
 
-
 ///////////Sharp DustSensor GP2Y1010AU0F | GP2Y1014AU0F////////
-#define COV_RATIO        0.17//0.2    //ug/mmm / mv
-#define NO_DUST_VOLTAGE  600//400    //mv
-#define SYS_VOLTAGE      3300   
+#define COV_RATIO 0.17      // 0.2    //ug/mmm / mv
+#define NO_DUST_VOLTAGE 600 // 400    //mv
+#define SYS_VOLTAGE 3300
 
 uint16_t DustSensor::Filter(uint16_t m)
 {
@@ -38,11 +37,7 @@ uint16_t DustSensor::Filter(uint16_t m)
     }
 }
 
-
-void DustSensor::registercallBack(dustAcquiredCallback c)
-{
-    acquiredCallback = c;
-}
+void DustSensor::registercallBack(dustAcquiredCallback c) { acquiredCallback = c; }
 
 void DustSensor::init()
 {
@@ -64,14 +59,14 @@ void DustSensor::loop()
         //  get adcvalue
         digitalWrite(iled, HIGH);
         delayMicroseconds(280);
-        analogReadResolution(12); //12 bits
+        analogReadResolution(12); // 12 bits
         analogSetAttenuation(ADC_11db);
         // ADC_0db provides no attenuation so IN/OUT = 1 / 1 an input of 3 volts remains at 3 volts before ADC measurement
         // ADC_2_5db provides an attenuation so that IN/OUT = 1 / 1.34 an input of 3 volts is reduced to 2.238 volts before ADC measurement
         // ADC_6db provides an attenuation so that IN/OUT = 1 / 2 an input of 3 volts is reduced to 1.500 volts before ADC measurement
         // ADC_11db provides an attenuation so that IN/OUT = 1 / 3.6 an input of 3 volts is reduced to 0.833 volts before ADC measurement
 
-        //uint16_t adcvalue = analogRead(vout);
+        // uint16_t adcvalue = analogRead(vout);
         uint16_t adcvalue = analogReadMilliVolts(vout);
         digitalWrite(iled, LOW);
 
@@ -80,7 +75,7 @@ void DustSensor::loop()
         // 4.56 => 2.275 (Ratio = 0,5)
         // 3.3V 12bits => 3.3/4096 = 0.8mV/step
         float voltage = (adcvalue * (1.0 / 0.5));
-        //Serial.print("Adc(mV): "); Serial.print(adcvalue); Serial.print(" Volt(mV) : "); Serial.println(voltage); 
+        // Serial.print("Adc(mV): "); Serial.print(adcvalue); Serial.print(" Volt(mV) : "); Serial.println(voltage);
 
         // Average filter
         voltage = Filter(voltage);
@@ -93,18 +88,19 @@ void DustSensor::loop()
         } else
           density = 0;
         */
-        //See http://www.howmuchsnow.com/arduino/airquality/
+        // See http://www.howmuchsnow.com/arduino/airquality/
         dust_density = ((0.17 * (voltage / 1000.0)) - 0.1) * 1000.0;
-        if (dust_density < 0) dust_density = 0;
+        if (dust_density < 0)
+            dust_density = 0;
         Serial.print("The current dust concentration is: ");
         Serial.print(dust_density);
         Serial.print(" ug/m3 ");
-        if (dust_density <= 50)        Serial.print("- Air quality: Excelent");
-        else if (dust_density <= 100)  Serial.print("- Air quality: Average");
-        else if (dust_density <= 150)  Serial.print("- Air quality: Light pollution");
-        else if (dust_density <= 200)  Serial.print("- Air quality: Moderatre pollution");
-        else if (dust_density <= 300)  Serial.print("- Air quality: Heavy pollution");
-        else if (dust_density > 300)   Serial.print("- Air quality: Serious pollution");
+        if (dust_density <= 50)             Serial.print("- Air quality: Excelent");
+        else if (dust_density <= 100)       Serial.print("- Air quality: Average");
+        else if (dust_density <= 150)       Serial.print("- Air quality: Light pollution");
+        else if (dust_density <= 200)       Serial.print("- Air quality: Moderatre pollution");
+        else if (dust_density <= 300)       Serial.print("- Air quality: Heavy pollution");
+        else if (dust_density > 300)        Serial.print("- Air quality: Serious pollution");
         Serial.println("");
 
         //  PM2.5 density  |  Air quality   |  Air quality   | Air quality
@@ -116,7 +112,7 @@ void DustSensor::loop()
         //     150-250     |      201-300   |        V       |  Heavy pollution
         //     250-500     |      ≥300 	    |       VI       |  Serious pullution
 
-        //Send dust density
+        // Send dust density
         if ((acquiredCallback != nullptr) && (!isnan(dust_density)))
             acquiredCallback(dust_density);
     }

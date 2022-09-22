@@ -6,7 +6,7 @@
 
 class PurifierManager
 {
-public:
+  public:
     PurifierManager() = default;
 
     void process(float dust);
@@ -21,11 +21,10 @@ public:
     void registerMotorSpeedcallBack(changeMotorSpeedCBK c) { setMotorSpeed = c; }
     void registerLedColorcallBack(changeLedColorCBK c) { setLedColor = c; }
 
-
-private:
+  private:
     changeMotorSpeedCBK setMotorSpeed{nullptr};
     changeLedColorCBK setLedColor{nullptr};
-    
+
     bool autoModeActive{true};
 
     float sensor_dust{nanf("")};

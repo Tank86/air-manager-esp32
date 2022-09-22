@@ -253,6 +253,7 @@ void onLedStateChanged(bool state)
 }
 
 ////////////////////////// WIFI ////////////////////////
+#if defined(HARDCODED_CREDENTIALS)
 // const char* wifi_ssid = "";
 // const char* wifi_password = "";
 // const char* mqtt_server = "homeassistant.local";
@@ -261,6 +262,8 @@ void onLedStateChanged(bool state)
 // const uint16_t   mqtt_port = 1883;
 /* /!\ The previous data has to be filled here of inside a private wifiCredentials.hpp /!\ */
 #include <wifiCredentials.hpp>
+#endif
+
 
 void initWIFI(const char *ssid, const char *password)
 {
@@ -283,7 +286,7 @@ void initWIFI(const char *ssid, const char *password)
 }
 
 ///////// MQTT communication ////////
-#ifndef HOMEASSISTANT
+#if !defined(HOMEASSISTANT)
 WiFiClient espClient;
 PubSubClient client(espClient);
 long lastMsg = 0;
@@ -396,7 +399,7 @@ void loopMQTT()
 #else
 /////////////////// Home assistant device ///////////
 
-void initMQTT(const char *address, uint16_t port, const char *user, const char *pwd)
+void initMQTT(const char *address, uint16_t port, const char *user = nullptr, const char *pwd = nullptr)
 {
     // set device's details (optional)
     device.setName("air-manager");
@@ -505,9 +508,11 @@ void setup()
     // Start 1024 bytes of EEPROM
     EEPROM.begin(1024); // Need BSEC_MAX_STATE_BLOB_SIZE(197 bytes) for BME680 +  512 bytes for Wifi credentials
 
+#if !defined(HARDCODED_CREDENTIALS)
     // Start try to get wifi/mqtt credentials,
     // This method is blocking while all data are not initalized.
-    credentials.loadParameters(256, true); // EPROM Base address //BME680 need 197 bytes, so start at @256
+    credentials.loadParameters(256, false); // EPROM Base address //BME680 need 197 bytes, so start at @256
+#endif
 
     initPurifierPins();
     initDigitalPot();
@@ -520,8 +525,20 @@ void setup()
     airManager.registerMotorSpeedcallBack(onManagerMotorSpeedChanged);
     airManager.registerLedColorcallBack(onManagerLedColorChanged);
 
+#if defined(HARDCODED_CREDENTIALS)
     initWIFI(wifi_ssid, wifi_password);
-    initMQTT(mqtt_server, mqtt_port, mqtt_user, mqtt_pwd);
+    if(!String(mqtt_user).isEmpty() && !String(mqtt_pwd).isEmpty())
+        initMQTT(mqtt_server, mqtt_port, mqtt_user, mqtt_pwd);
+    else
+        initMQTT(mqtt_server, mqtt_port);
+
+#else
+    initWIFI(credentials.getWifiSSID().c_str(), credentials.getWifiPWD().c_str());
+    if(!credentials.getMqttUser().isEmpty() && !credentials.getMqttUser().isEmpty())
+        initMQTT(credentials.getMqttAddress().c_str(), credentials.getMqttPort(), credentials.getMqttUser().c_str(), credentials.getMqttPwd().c_str());
+    else
+        initMQTT(credentials.getMqttAddress().c_str(), credentials.getMqttPort());
+#endif
 }
 
 void loop()

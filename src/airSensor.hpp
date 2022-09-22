@@ -6,7 +6,7 @@
 
 class AirSensor
 {
-public:
+  public:
     AirSensor() = default;
 
     void init(uint16_t EEPROM_BaseAddress);
@@ -14,7 +14,7 @@ public:
 
     void attachCallback(bsecCallback c);
 
-private:
+  private:
     // Helper functions declarations
     void checkBsecStatus(Bsec2 bsec);
     void newDataCallback(const bme68xData data, const bsecOutputs outputs, Bsec2 bsec);
