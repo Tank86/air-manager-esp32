@@ -26,7 +26,7 @@ const char INDEX_HTML[] =
 "<input maxlength=\"5\" name=\"mqtt_port\"><br>"
 "<label>MQTT User:&nbsp;</label>"
 "<input maxlength=\"50\" name=\"mqtt_user\"><br>"
-"<label>MQTT password:&nbsp;&nbsp;&nbsp;&nbsp;</label>"
+"<label>MQTT Password:&nbsp;&nbsp;&nbsp;&nbsp;</label>"
 "<input maxlength=\"50\" name=\"mqtt_pwd\"><br>"
 "</p>"
 "<input type=\"submit\" value=\"Save\">"

@@ -1,13 +1,16 @@
 #include "CredentialsManager.hpp"
+#include <EEPROM.h>
+#include <ESPmDNS.h>
+
 #include "WifiPage.h"
-#include "EEPROM.h"
 
 uint16_t CredentialsManager::EEPROM_BaseAddress{0};
-WebServer CredentialsManager::server{IPAddress{192,168,4,1}, 80};
+WebServer CredentialsManager::server{IPAddress{192, 168, 4, 1}, 80};
+
 
 /*
-* Function to handle unknown URLs
-*/
+ * Function to handle unknown URLs
+ */
 void CredentialsManager::handleNotFound()
 {
     String message{"File Not Found\n\n"};
@@ -27,16 +30,12 @@ void CredentialsManager::handleNotFound()
 }
 
 /*
-* Function for home page
-*/
-void  CredentialsManager::handleRoot()
+ * Function for home page
+ */
+void CredentialsManager::handleRoot()
 {
-    if (server.hasArg("wifi_ssid") && 
-        server.hasArg("wifi_pwd") && 
-        server.hasArg("mqtt_port") && 
-        server.hasArg("wifi_ssid") && 
-        server.hasArg("mqtt_user") && 
-        server.hasArg("mqtt_pwd") )
+    if (server.hasArg("wifi_ssid") && server.hasArg("wifi_pwd") && server.hasArg("mqtt_port") && server.hasArg("wifi_ssid") &&
+        server.hasArg("mqtt_user") && server.hasArg("mqtt_pwd"))
     {
         String wifi_ssid{server.arg("wifi_ssid")};
         String wifi_pwd{server.arg("wifi_pwd")};
@@ -44,14 +43,12 @@ void  CredentialsManager::handleRoot()
         String mqtt_address{server.arg("wifi_ssid")};
         String mqtt_user{server.arg("mqtt_user")};
         String mqtt_pwd{server.arg("mqtt_pwd")};
-        Serial.println("Server received submit (" + wifi_ssid + " , " + wifi_pwd + " , " + mqtt_address + " , " + mqtt_port + " , " + mqtt_user + " , " + mqtt_pwd +  " )");
+        Serial.println("Server received submit (" + wifi_ssid + " , " + wifi_pwd + " , " + mqtt_address + " , " + mqtt_port + " , " +
+                       mqtt_user + " , " + mqtt_pwd + " )");
 
-        if(!wifi_ssid.isEmpty() &&
-        !wifi_pwd.isEmpty() &&
-            mqtt_port != 0 &&
-        !mqtt_address.isEmpty() )
+        if (!wifi_ssid.isEmpty() && !wifi_pwd.isEmpty() && mqtt_port != 0 && !mqtt_address.isEmpty())
         {
-            if (writeCredentials(wifi_ssid, wifi_pwd, mqtt_address, mqtt_port, mqtt_user, mqtt_pwd)) 
+            if (writeCredentials(wifi_ssid, wifi_pwd, mqtt_address, mqtt_port, mqtt_user, mqtt_pwd))
             {
                 String response_success = "<h1>Success</h1>";
                 response_success += "<h2>Device will restart in 3 seconds</h2>";
@@ -61,42 +58,61 @@ void  CredentialsManager::handleRoot()
                 delay(3000);
                 ESP.restart();
             }
-            else 
+            else
             {
                 String response_error = "<h1>Error</h1>";
                 response_error += "<h2><a href='/'>Data ok, but saving fails,</a>to try again";
                 server.send(200, "text/html", response_error);
             }
         }
-        else 
+        else
         {
             String response_error = "<h1>Error</h1>";
             response_error += "<h2><a href='/'>data is invalid</a>to try again";
             server.send(200, "text/html", response_error);
         }
     }
-    else 
+    else
     {
-        Serial.println("Server missing some parameters, retry enter them");
+        Serial.println("Showing root page");
         server.send(200, "text/html", INDEX_HTML);
     }
 }
 
 /*
-* Function for loading form
-* Returns: false if no WiFi creds in EEPROM
-*/
+ * Function for loading form
+ * Returns: false if no WiFi creds in EEPROM
+ */
 void CredentialsManager::runAPServer()
 {
-    const char* ssid = "ESP32 Air Purifier";
+    const char *ssid = "ESP32 Air Purifier";
 
     Serial.println("Starting Access Point...");
     WiFi.softAP(ssid);
-    //WiFi.softAPConfig()   //TODO custom address
+    // WiFi.softAPConfig()   //TODO custom address
 
     IPAddress IP = WiFi.softAPIP();
     Serial.print("AP IP address: ");
     Serial.println(IP);
+
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        // Setup MDNS responder
+        if (!MDNS.begin(serverHostname.c_str()))
+        {
+            Serial.println("Error setting up MDNS responder!");
+        }
+        else
+        {
+            Serial.println("mDNS responder started");
+            // Add service to MDNS-SD
+            MDNS.addService("http", "tcp", 80);
+        }
+    }
+
+    // Setup the DNS server redirecting all the domains to the apIP
+    dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+    dnsServer.start(DNS_PORT, "*", IP);
 
     server.on("/", handleRoot);
     server.onNotFound(handleNotFound);
@@ -107,29 +123,33 @@ void CredentialsManager::runAPServer()
 
 bool CredentialsManager::waitReboot()
 {
-    while (true) 
+    while (true)
     {
+
+        // DNS
+        dnsServer.processNextRequest();
+        // HTTP
         server.handleClient();
+
         delay(100);
     }
 
     return false;
 }
 
-void CredentialsManager::initEEPROMArea() 
+void CredentialsManager::initEEPROMArea()
 {
-    for (uint32_t i = 0; i < 512; i++) 
+    for (uint32_t i = 0; i < 512; i++)
     {
         EEPROM.writeByte(EEPROM_BaseAddress + i, 0xFF);
     }
     EEPROM.commit();
 }
 
-
 /*
-* Function checking WiFi creds in memory
-* Returns: true if not empty, false if empty
-*/
+ * Function checking WiFi creds in memory
+ * Returns: true if not empty, false if empty
+ */
 bool CredentialsManager::isEEPROMContentValid()
 {
     Serial.println("Checking EEPROM content");
@@ -137,7 +157,6 @@ bool CredentialsManager::isEEPROMContentValid()
 
     return (magicKey == EE_MAGICKEY);
 }
-
 
 void CredentialsManager::loadEEPROMData()
 {
@@ -158,10 +177,11 @@ void CredentialsManager::loadEEPROMData()
 }
 
 /*
-* Function for writing creds to EEPROM
-* Returns: true if save successful, false if unsuccessful
-*/
-bool CredentialsManager::writeCredentials(String wifi_ssid, String wifi_pwd, String mqtt_add, uint16_t mqtt_port, String mqtt_usr, String mqtt_pwd)
+ * Function for writing creds to EEPROM
+ * Returns: true if save successful, false if unsuccessful
+ */
+bool CredentialsManager::writeCredentials(String wifi_ssid, String wifi_pwd, String mqtt_add, uint16_t mqtt_port, String mqtt_usr,
+                                          String mqtt_pwd)
 {
     char buffer[100];
 
@@ -178,9 +198,9 @@ bool CredentialsManager::writeCredentials(String wifi_ssid, String wifi_pwd, Str
     EEPROM.writeString(EEPROM_BaseAddress + EE_OFFSET_MQTT_PWD, buffer);
 
     bool success = EEPROM.commit();
-    if(success)
+    if (success)
     {
-        delay(100); //just in case
+        delay(100); // just in case
         EEPROM.writeUInt(EEPROM_BaseAddress + EE_OFFSET_MAGICKEY, EE_MAGICKEY);
         Serial.println("Stored Wifi credentials");
         return EEPROM.commit();
@@ -192,7 +212,6 @@ bool CredentialsManager::writeCredentials(String wifi_ssid, String wifi_pwd, Str
     }
 }
 
-
 void CredentialsManager::loadParameters(uint16_t EE_BaseAddr, bool forcedShowAP)
 {
     EEPROM_BaseAddress = EE_BaseAddr;
@@ -200,7 +219,7 @@ void CredentialsManager::loadParameters(uint16_t EE_BaseAddr, bool forcedShowAP)
     // Check if EEPROM content is valid
     if (forcedShowAP || !isEEPROMContentValid())
     {
-        if(!forcedShowAP)
+        if (!forcedShowAP)
         {
             initEEPROMArea();
             Serial.println("Initializing EEPROM Credentials area...");
@@ -209,8 +228,9 @@ void CredentialsManager::loadParameters(uint16_t EE_BaseAddr, bool forcedShowAP)
         Serial.println("Starting WIFI AP server mode to enter credentials");
         runAPServer();
 
-        //Run server and wait for user to enter credentials
-        while (waitReboot());
+        // Run server and wait for user to enter credentials
+        while (waitReboot())
+            ;
     }
     else
     {
@@ -220,4 +240,3 @@ void CredentialsManager::loadParameters(uint16_t EE_BaseAddr, bool forcedShowAP)
         loadEEPROMData();
     }
 }
-

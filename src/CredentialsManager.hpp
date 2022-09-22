@@ -2,23 +2,23 @@
 #define INCLUDE_CREDENTIALS_MANAGER_HPP
 
 #include <Arduino.h>
+#include <DNSServer.h>
 #include <WebServer.h>
-
 
 class CredentialsManager
 {
-public:
+  public:
     CredentialsManager() = default;
 
     void loadParameters(uint16_t EEPROM_BaseAddress, bool forcedShowAP);
     String getWifiSSID() const { return Wifi_SSID; }
-    String getWifiPWD() const  { return Wifi_Pwd; }
+    String getWifiPWD() const { return Wifi_Pwd; }
     uint16_t getMqttPort() const { return Mqtt_Port; }
-    String getMqttAddress() const  { return Mqtt_Address; }
+    String getMqttAddress() const { return Mqtt_Address; }
     String getMqttUser() const { return Mqtt_User; }
-    String getMqttPwd() const  { return Mqtt_Pwd; }
+    String getMqttPwd() const { return Mqtt_Pwd; }
 
-private:
+  private:
     void runAPServer();
     bool waitReboot();
 
@@ -32,6 +32,12 @@ private:
 
     static uint16_t EEPROM_BaseAddress;
     static WebServer server;
+
+    // DNS server
+    // hostname for DNS. Try http://airManager.local
+    const String serverHostname{"airManager"};
+    const byte DNS_PORT{53};
+    DNSServer dnsServer;
 
     enum : uint16_t
     {
@@ -54,4 +60,3 @@ private:
 };
 
 #endif
-
