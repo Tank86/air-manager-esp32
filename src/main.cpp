@@ -511,6 +511,7 @@ void setup()
 #if !defined(HARDCODED_CREDENTIALS)
     // Start try to get wifi/mqtt credentials,
     // This method is blocking while all data are not initalized.
+    credentials.init("Air Purifier AP", "airpurifier");
     credentials.loadParameters(256, false); // EPROM Base address //BME680 need 197 bytes, so start at @256
 #endif
 

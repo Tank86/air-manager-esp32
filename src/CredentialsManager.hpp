@@ -10,7 +10,9 @@ class CredentialsManager
   public:
     CredentialsManager() = default;
 
+    void init(const char *SSID, const char *hostname);
     void loadParameters(uint16_t EEPROM_BaseAddress, bool forcedShowAP);
+
     String getWifiSSID() const { return Wifi_SSID; }
     String getWifiPWD() const { return Wifi_Pwd; }
     uint16_t getMqttPort() const { return Mqtt_Port; }
@@ -22,21 +24,36 @@ class CredentialsManager
     void runAPServer();
     bool waitReboot();
 
-    static void handleNotFound();
     static void handleRoot();
+    static void handleWifi();
+    static void handleWifiSave();
+    static void handleConfig();
+    static void handleConfigSave();
+    static void handleNotFound();
+    static bool captivePortal();
 
-    static bool writeCredentials(String wifi_ssid, String wifi_pwd, String mqtt_add, uint16_t mqtt_port, String mqtt_usr, String mqtt_pwd);
+    // Utilities
+    static bool isIp(String str);
+
+    // EEPROM read/Save
     void initEEPROMArea();
     bool isEEPROMContentValid();
     void loadEEPROMData();
+    static bool writeCredentials(const String& wifi_ssid, const String& wifi_pwd, const String& mqtt_add, uint16_t mqtt_port, const String& mqtt_usr, const String& mqtt_pwd);
 
+    // EEPROM Data
     static uint16_t EEPROM_BaseAddress;
+
+    // Soft AP network parameters
+    static String apSSID;
+    static IPAddress apIP;
+    static IPAddress netMsk;
     static WebServer server;
 
+    // hostname for DNS. like http://esp32portal.local
+    static String serverHostname;
     // DNS server
-    // hostname for DNS. Try http://airManager.local
-    const String serverHostname{"airManager"};
-    const byte DNS_PORT{53};
+    const uint16_t DNS_PORT{53};
     DNSServer dnsServer;
 
     enum : uint16_t
