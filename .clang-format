@@ -1,6 +1,12 @@
-UseTab: false
+BasedOnStyle: LLVM
+UseTab: Never
 IndentWidth: 4
+TabWidth: 4
 BreakBeforeBraces: Allman
 AllowShortIfStatementsOnASingleLine: false
 IndentCaseLabels: true
 ColumnLimit: 140
+AlignArrayOfStructures: Left
+AlignConsecutiveAssignments: Consecutive 
+AlignConsecutiveDeclarations: Consecutive 
+AlignOperands: true

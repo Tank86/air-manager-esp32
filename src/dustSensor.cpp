@@ -2,10 +2,10 @@
 
 uint16_t DustSensor::Filter(uint16_t m)
 {
-    const size_t _buff_max = 10;
-    static uint16_t _buff[10] = {0};
-    static int flag_first = 0, sum;
-    uint16_t i;
+    const size_t    _buff_max  = 10;
+    static uint16_t _buff[10]  = {0};
+    static int      flag_first = 0, sum;
+    uint16_t        i;
 
     if (flag_first == 0)
     {
@@ -45,9 +45,9 @@ void DustSensor::init()
 
 void DustSensor::loop()
 {
-    static const float COV_RATIO = 0.17;            //ug/mmm / mv
-    static const uint16_t NO_DUST_VOLTAGE = 600;    //mv
-    static const uint16_t SYS_VOLTAGE = 3300;
+    static const float    COV_RATIO       = 0.17; // ug/mmm / mv
+    static const uint16_t NO_DUST_VOLTAGE = 600;  // mv
+    static const uint16_t SYS_VOLTAGE     = 3300;
 
     static uint32_t lastAcqTimer = millis();
 

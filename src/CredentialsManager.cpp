@@ -2,11 +2,11 @@
 #include <EEPROM.h>
 #include <ESPmDNS.h>
 
-String CredentialsManager::apSSID{"esp32 access point"};
-IPAddress CredentialsManager::apIP{192, 168, 4, 1};
-IPAddress CredentialsManager::netMsk{255, 255, 255, 0};
-WebServer CredentialsManager::server{apIP, 80};
-String CredentialsManager::serverHostname{"esp32portal"};
+String                         CredentialsManager::apSSID{"esp32 access point"};
+IPAddress                      CredentialsManager::apIP{192, 168, 4, 1};
+IPAddress                      CredentialsManager::netMsk{255, 255, 255, 0};
+WebServer                      CredentialsManager::server{apIP, 80};
+String                         CredentialsManager::serverHostname{"esp32portal"};
 CredentialsManager::wifiList_t CredentialsManager::wifiList{false, 0};
 
 uint16_t CredentialsManager::EEPROM_BaseAddress{0};
@@ -27,14 +27,15 @@ void CredentialsManager::handleRoot()
 void CredentialsManager::handleWifiScan()
 {
     Serial.print("wifi list refreshing ...");
-    while(!wifiList.refreshed);
+    while (!wifiList.refreshed)
+        ;
     wifiList.scanCount = WiFi.scanNetworks();
     wifiList.refreshed = true;
     Serial.println("done");
 
-    //TODO show a waiting page during scanning
+    // TODO show a waiting page during scanning
 
-    //Once done, go to config page
+    // Once done, go to config page
     handleConfig();
 }
 
@@ -83,12 +84,12 @@ void CredentialsManager::handleConfig()
 /** Handle saving of full credential configuration */
 void CredentialsManager::handleConfigSave()
 {
-    String wifi_ssid{server.arg("wifi_ssid")};
-    String wifi_pwd{server.arg("wifi_pwd")};
+    String   wifi_ssid{server.arg("wifi_ssid")};
+    String   wifi_pwd{server.arg("wifi_pwd")};
     uint16_t mqtt_port = String{server.arg("mqtt_port")}.toInt();
-    String mqtt_address{server.arg("wifi_ssid")};
-    String mqtt_user{server.arg("mqtt_user")};
-    String mqtt_pwd{server.arg("mqtt_pwd")};
+    String   mqtt_address{server.arg("wifi_ssid")};
+    String   mqtt_user{server.arg("mqtt_user")};
+    String   mqtt_pwd{server.arg("mqtt_pwd")};
     Serial.println("Server received submit (" + wifi_ssid + " , " + wifi_pwd + " , " + mqtt_address + " , " + mqtt_port + " , " +
                    mqtt_user + " , " + mqtt_pwd + " )");
 
@@ -128,7 +129,6 @@ void CredentialsManager::handleConfigSave()
 
     // connect = strlen(ssid) > 0; // Request WLAN connect with new credentials if there is a SSID
 }
-
 
 /** Redirect to captive portal if we got a request for another domain. Return true in that case so the page handler do not try to handle the
  * request again. */
@@ -196,7 +196,7 @@ void CredentialsManager::runAPServer()
     WiFi.softAPConfig(apIP, apIP, netMsk);
     WiFi.softAP(apSSID.c_str());
     delay(500); // Without delay I've seen the IP address blank
-    
+
     IPAddress IP = WiFi.softAPIP();
     Serial.print("AP IP address: ");
     Serial.println(IP);
@@ -224,15 +224,19 @@ bool CredentialsManager::waitReboot()
 
     while (true)
     {
-        if(!wifiList.refreshed)
+        if (!wifiList.refreshed)
         {
             int16_t status = WiFi.scanComplete();
-            if(status == WIFI_SCAN_FAILED) 
-                 status = WiFi.scanNetworks(true);
-                
+            if (status == WIFI_SCAN_FAILED)
+                status = WiFi.scanNetworks(true);
 
-            if(status == WIFI_SCAN_RUNNING) { Serial.print("."); } //wait
-            else if(status == WIFI_SCAN_FAILED) { } //retry
+            if (status == WIFI_SCAN_RUNNING)
+            {
+                Serial.print(".");
+            } // wait
+            else if (status == WIFI_SCAN_FAILED)
+            {
+            } // retry
             else
             {
                 wifiList.scanCount = status;
@@ -346,7 +350,7 @@ bool CredentialsManager::writeCredentials(const String &wifi_ssid, const String 
 void CredentialsManager::init(const char *SSID, const char *hostname)
 {
     serverHostname = hostname;
-    apSSID = SSID;
+    apSSID         = SSID;
 }
 
 void CredentialsManager::loadParameters(uint16_t EE_BaseAddr, bool forcedShowAP)
@@ -380,17 +384,17 @@ void CredentialsManager::loadParameters(uint16_t EE_BaseAddr, bool forcedShowAP)
 
 bool CredentialsManager::isWifiReacheable()
 {
-    if(!Wifi_SSID.isEmpty())
+    if (!Wifi_SSID.isEmpty())
     {
         // Try Connect to wifi
         Serial.println("Trying conenction to  " + Wifi_SSID);
         WiFi.begin(Wifi_SSID.c_str(), Wifi_Pwd.c_str());
 
         bool connected = false;
-        for(uint32_t retry = 0; (retry < 30) && !connected; retry++)
+        for (uint32_t retry = 0; (retry < 30) && !connected; retry++)
         {
             Serial.print(".");
-            delay(500); //Waiting between tries
+            delay(500); // Waiting between tries
             connected = (WiFi.status() == WL_CONNECTED);
         }
 

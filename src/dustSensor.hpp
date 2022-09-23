@@ -7,10 +7,7 @@
 class DustSensor
 {
   public:
-    DustSensor(const uint8_t ledPin, const uint8_t AnalogOutPin) :
-        iled(ledPin),
-        vout(AnalogOutPin)
-    { }
+    DustSensor(const uint8_t ledPin, const uint8_t AnalogOutPin) : iled(ledPin), vout(AnalogOutPin) {}
 
     void init();
     void loop();
@@ -21,12 +18,12 @@ class DustSensor
   private:
     uint16_t Filter(uint16_t m);
 
-    float dust_density{nanf("")};
+    float                dust_density{nanf("")};
     dustAcquiredCallback acquiredCallback{nullptr};
 
-    //pins 
-    const uint8_t iled;  //drive the led of sensor
-    const uint8_t vout;  //analog input
+    // pins
+    const uint8_t iled; // drive the led of sensor
+    const uint8_t vout; // analog input
 };
 
 #endif

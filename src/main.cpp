@@ -11,25 +11,23 @@
 #include <WiFi.h>
 #include <Wire.h>
 
-
 CredentialsManager credentials;
-PurifierManager airManager;
-MCP40xx pot{PINS_POT_CS, PINS_POT_UD};
-LedStrip ledStrip;
-DustSensor sensorDust{PINS_DUSTSENSOR_ILED, PINS_DUSTSENSOR_VOUT};
-AirSensor sensorAir;
+PurifierManager    airManager;
+MCP40xx            pot{PINS_POT_CS, PINS_POT_UD};
+LedStrip           ledStrip;
+DustSensor         sensorDust{PINS_DUSTSENSOR_ILED, PINS_DUSTSENSOR_VOUT};
+AirSensor          sensorAir;
 
 #ifdef HOMEASSISTANT
 WiFiClient espClient;
-HADevice device;
-HAMqtt mqtt(espClient, device);
+HADevice   device;
+HAMqtt     mqtt(espClient, device);
 // See https://www.home-assistant.io/integrations/#search/mqtt
 // See https://www.home-assistant.io/integrations/sensor/#device-class
-// Need to add MQTT Light https://www.home-assistant.io/integrations/light.mqtt/
 // HASwitch led("led", false); // "led" is unique ID of the switch. You should define your own ID.
-HALight leds("ledStrip");                           // Is always automatic
-HAFan purifierMotor("motor", HAFan::SpeedsFeature); // AirPurifier Motor
-HASwitch autoMode("AutoMode", true);                // Represent the mode of the purifier (Automatic/manual)
+HALight  leds("ledStrip");                             // Is always automatic
+HAFan    purifierMotor("motor", HAFan::SpeedsFeature); // AirPurifier Motor
+HASwitch autoMode("AutoMode", true);                   // Represent the mode of the purifier (Automatic/manual)
 HASensor temp("temperature");
 HASensor humidity("humidity");
 HASensor pressure("pressure");
@@ -258,7 +256,6 @@ void onLedStateChanged(bool state)
 #include <wifiCredentials.hpp>
 #endif
 
-
 void initWIFI(const char *ssid, const char *password)
 {
     // Unique ID must be set!
@@ -281,9 +278,9 @@ void initWIFI(const char *ssid, const char *password)
 
 ///////// MQTT communication ////////
 #if !defined(HOMEASSISTANT)
-WiFiClient espClient;
+WiFiClient   espClient;
 PubSubClient client(espClient);
-long lastMsg = 0;
+long         lastMsg = 0;
 
 void callbackMQTT(char *topic, byte *message, unsigned int length)
 {
@@ -339,9 +336,9 @@ void reconnect()
     }
 }
 
-void initMQTT(void)
+void initMQTT(const char *address, uint16_t port, const char *user = nullptr, const char *pwd = nullptr)
 {
-    client.setServer(mqtt_server, mqtt_port);
+    client.setServer(address, port, user, pwd);
     client.setCallback(callbackMQTT);
 }
 
@@ -469,7 +466,7 @@ void initPurifierPins()
 {
 #if defined(ARDUINO_ARCH_ESP32_C3)
     // Lolin ESP32_C3 has builtin RGB led
-    //TODO Init RGB
+    // TODO Init RGB
     pinMode(PINS_STATUS_LED, OUTPUT);
 #else
     pinMode(PINS_STATUS_LED, OUTPUT);
@@ -504,8 +501,8 @@ void setup()
     // Start try to get wifi/mqtt credentials,
     // This method is blocking while all data are not initalized.
     credentials.init("Air Purifier AP", "airpurifier");
-    bool forcedMode = true;
-    if(forcedMode || !credentials.isWifiReacheable())
+    bool forcedMode = false;
+    if (forcedMode || !credentials.isWifiReacheable())
         credentials.loadParameters(256, forcedMode); // EPROM Base address //BME680 need 197 bytes, so start at @256
 #endif
 
@@ -522,15 +519,16 @@ void setup()
 
 #if defined(HARDCODED_CREDENTIALS)
     initWIFI(wifi_ssid, wifi_password);
-    if(!String(mqtt_user).isEmpty() && !String(mqtt_pwd).isEmpty())
+    if (!String(mqtt_user).isEmpty() && !String(mqtt_pwd).isEmpty())
         initMQTT(mqtt_server, mqtt_port, mqtt_user, mqtt_pwd);
     else
         initMQTT(mqtt_server, mqtt_port);
 
 #else
     initWIFI(credentials.getWifiSSID().c_str(), credentials.getWifiPWD().c_str());
-    if(!credentials.getMqttUser().isEmpty() && !credentials.getMqttUser().isEmpty())
-        initMQTT(credentials.getMqttAddress().c_str(), credentials.getMqttPort(), credentials.getMqttUser().c_str(), credentials.getMqttPwd().c_str());
+    if (!credentials.getMqttUser().isEmpty() && !credentials.getMqttUser().isEmpty())
+        initMQTT(credentials.getMqttAddress().c_str(), credentials.getMqttPort(), credentials.getMqttUser().c_str(),
+                 credentials.getMqttPwd().c_str());
     else
         initMQTT(credentials.getMqttAddress().c_str(), credentials.getMqttPort());
 #endif

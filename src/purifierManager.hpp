@@ -23,7 +23,7 @@ class PurifierManager
 
   private:
     changeMotorSpeedCBK setMotorSpeed{nullptr};
-    changeLedColorCBK setLedColor{nullptr};
+    changeLedColorCBK   setLedColor{nullptr};
 
     bool autoModeActive{true};
 
@@ -31,7 +31,7 @@ class PurifierManager
     float sensor_gasvoc{nanf("")};
     float sensor_iaq{nanf("")};
 
-    void process();
+    void  process();
     float interpolate(float val, float x0, float x1, float y0, float y1, bool saturate = true);
 };
 
