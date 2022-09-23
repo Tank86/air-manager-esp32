@@ -1,10 +1,5 @@
 #include "dustSensor.hpp"
 
-///////////Sharp DustSensor GP2Y1010AU0F | GP2Y1014AU0F////////
-#define COV_RATIO 0.17      // 0.2    //ug/mmm / mv
-#define NO_DUST_VOLTAGE 600 // 400    //mv
-#define SYS_VOLTAGE 3300
-
 uint16_t DustSensor::Filter(uint16_t m)
 {
     const size_t _buff_max = 10;
@@ -50,6 +45,10 @@ void DustSensor::init()
 
 void DustSensor::loop()
 {
+    static const float COV_RATIO = 0.17;            //ug/mmm / mv
+    static const uint16_t NO_DUST_VOLTAGE = 600;    //mv
+    static const uint16_t SYS_VOLTAGE = 3300;
+
     static uint32_t lastAcqTimer = millis();
 
     if ((millis() - lastAcqTimer) > (1000))

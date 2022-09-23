@@ -179,17 +179,12 @@ void AirSensor::errLeds(void)
 {
 #if defined(ARDUINO_ARCH_ESP32_C3)
     // Lolin ESP32_C3 has builtin RGB led
-    static const uint8_t LED_BUILTIN = 7;
-    pinMode(LED_BUILTIN, OUTPUT);
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(100);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(100);
+    // TODO, manage RGB LED
 #else
-    pinMode(LED_BUILTIN, OUTPUT);
-    digitalWrite(LED_BUILTIN, HIGH);
+    pinMode(PINS_STATUS_LED, OUTPUT);
+    digitalWrite(PINS_STATUS_LED, HIGH);
     delay(100);
-    digitalWrite(LED_BUILTIN, LOW);
+    digitalWrite(PINS_STATUS_LED, LOW);
     delay(100);
 #endif
 }

@@ -7,6 +7,7 @@ IPAddress CredentialsManager::apIP{192, 168, 4, 1};
 IPAddress CredentialsManager::netMsk{255, 255, 255, 0};
 WebServer CredentialsManager::server{apIP, 80};
 String CredentialsManager::serverHostname{"esp32portal"};
+CredentialsManager::wifiList_t CredentialsManager::wifiList{false, 0};
 
 uint16_t CredentialsManager::EEPROM_BaseAddress{0};
 
@@ -23,59 +24,18 @@ void CredentialsManager::handleRoot()
     handleConfig();
 }
 
-/** Wifi config page handler */
-void CredentialsManager::handleWifi()
+void CredentialsManager::handleWifiScan()
 {
-    server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    server.sendHeader("Pragma", "no-cache");
-    server.sendHeader("Expires", "-1");
+    Serial.print("wifi list refreshing ...");
+    while(!wifiList.refreshed);
+    wifiList.scanCount = WiFi.scanNetworks();
+    wifiList.refreshed = true;
+    Serial.println("done");
 
-    String Page;
-    Page += F("<!DOCTYPE html><html lang='en'><head>"
-              "<meta name='viewport' content='width=device-width'>"
-              "<title>Wifi Page</title></head><body>"
-              "<h1>Wifi config</h1>"
-              "<table><tr><th align='left'>Found WLAN list (refresh if any missing)</th></tr>");
+    //TODO show a waiting page during scanning
 
-    Serial.println("scan start");
-    int16_t n = WiFi.scanNetworks();
-    Serial.println("scan done");
-    if (n > 0)
-    {
-        for (int16_t i = 0; i < n; i++)
-        {
-            Page += String(F("\r\n<tr><td>SSID ")) + WiFi.SSID(i) + ((WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? F(" ") : F(" *")) +
-                    F(" (") + WiFi.RSSI(i) + F(")</td></tr>");
-        }
-    }
-    else
-    {
-        Page += F("<tr><td>No WLAN found</td></tr>");
-    }
-    Page += F("</table>"
-              "\r\n<br /><form method='POST' action='wifisave'><h4>Enter wifi info:</h4>"
-              "<input type='text' placeholder='network' name='wifi_ssid'/>"
-              "<br /><input type='password' placeholder='password' name='wifi_pwd'/>"
-              "<br /><input type='submit' value='Save'/></form>"
-              "<p>You may want to <a href='/'>return to the home page</a>.</p>"
-              "</body></html>");
-    server.send(200, "text/html", Page);
-    server.client().stop(); // Stop is needed because we sent no content length
-}
-
-/** Handle the WLAN save form and redirect to WLAN config page again */
-void CredentialsManager::handleWifiSave()
-{
-    String wifi_ssid{server.arg("wifi_ssid")};
-    String wifi_pwd{server.arg("wifi_pwd")};
-    server.sendHeader("Location", "wifi", true);
-    server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    server.sendHeader("Pragma", "no-cache");
-    server.sendHeader("Expires", "-1");
-    server.send(302, "text/plain", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
-    server.client().stop();             // Stop is needed because we sent no content length
-    // saveCredentials();
-    // connect = strlen(ssid) > 0; // Request WLAN connect with new credentials if there is a SSID
+    //Once done, go to config page
+    handleConfig();
 }
 
 /** All config page handler */
@@ -88,30 +48,30 @@ void CredentialsManager::handleConfig()
     String Page;
     Page += F("<!DOCTYPE html><html lang='en'><head>"
               "<meta name='viewport' content='width=device-width'>"
-              "<title>Credential Page</title></head><body bgcolor='grey'>"
+              "<title>Credential Page</title></head>"
+              "<body bgcolor='grey'>"
               "<h1>Device configuration</h1>"
-              "<table><tr><th align='left'>Found WLAN list (refresh if any missing)</th></tr>");
+              "<h4><tr><th align='left'>Found WLAN list (<a href='/scan'>Click to refresh</a>)</th></tr></h4>"
+              "<ul>");
 
-    Serial.println("scan start");
-    int16_t n = WiFi.scanNetworks();
-    Serial.println("scan done");
-    if (n > 0)
+    if (wifiList.scanCount > 0)
     {
-        for (int16_t i = 0; i < n; i++)
-            Page += String(F("\r\n<tr><td>SSID ")) + WiFi.SSID(i) + ((WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? F(" ") : F(" *")) +
-                    F(" (") + WiFi.RSSI(i) + F(")</td></tr>");
+        for (uint16_t i = 0; i < wifiList.scanCount; i++)
+            Page += String(F("\r\n<li><tr><td>")) + WiFi.SSID(i) + ((WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? F(" ") : F(" &#128272")) +
+                    F(" (") + WiFi.RSSI(i) + F(")</td></tr></li>");
     }
     else
     {
-        Page += F("<tr><td>No WLAN found</td></tr>");
+        Page += F("<li><tr><td>No WLAN found</td></tr></li>");
     }
-    Page += F("</table>"
+
+    Page += F("</ul>"
               "\r\n<br /><form method='POST' action='configsave'><h4>Enter wifi info:</h4>"
               "<input type='text' maxlength='50' placeholder='ssid' name='wifi_ssid'/>"
               "<br /><input type='password' maxlength='50' placeholder='password' name='wifi_pwd'/>"
               "<h4>Enter MQTT info:</h4>"
               "<input type='text' maxlength='50' placeholder='address(homeassistant.local)' name='mqtt_addr'/>"
-              "<br /><input type='text' maxlength='5' placeholder='port(1883)' name='mqtt_port'/>"
+              "<br /><input type='number' min='0' max='65535' placeholder='port(1883)' value='1883' name='mqtt_port'/>"
               "<br /><input type='text' maxlength='50' placeholder='user' name='mqtt_user'/>"
               "<br /><input type='text' maxlength='50' placeholder='password' name='mqtt_pwd'/>"
               "<br /><input type='submit' value='Save'/></form>"
@@ -155,14 +115,14 @@ void CredentialsManager::handleConfigSave()
         else
         {
             String response_error = "<h1>Error</h1>";
-            response_error += "<h2><a href='/'>Data ok, but saving fails,</a>to try again";
+            response_error += "<h2><a href='/'>Data ok, but saving fails,</a> to try again";
             server.send(200, "text/html", response_error);
         }
     }
     else
     {
         String response_error = "<h1>Error</h1>";
-        response_error += "<h2><a href='/'>data is invalid</a>to try again";
+        response_error += "<h2><a href='/'>data is invalid</a> to try again";
         server.send(200, "text/html", response_error);
     }
 
@@ -235,33 +195,18 @@ void CredentialsManager::runAPServer()
     Serial.println("Starting Access Point...");
     WiFi.softAPConfig(apIP, apIP, netMsk);
     WiFi.softAP(apSSID.c_str());
-
+    delay(500); // Without delay I've seen the IP address blank
+    
     IPAddress IP = WiFi.softAPIP();
     Serial.print("AP IP address: ");
     Serial.println(IP);
-
-    if (WiFi.status() == WL_CONNECTED)
-    {
-        // Setup MDNS responder
-        if (!MDNS.begin(serverHostname.c_str()))
-        {
-            Serial.println("Error setting up MDNS responder!");
-        }
-        else
-        {
-            Serial.println("mDNS responder started");
-            // Add service to MDNS-SD
-            MDNS.addService("http", "tcp", 80);
-        }
-    }
 
     // Setup the DNS server redirecting all the domains to the apIP
     dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
     dnsServer.start(DNS_PORT, "*", IP);
 
     server.on("/", handleRoot);
-    server.on("/wifi", handleWifi);
-    server.on("/wifisave", handleWifiSave);
+    server.on("/scan", handleWifiScan);
     server.on("/config", handleConfig);
     server.on("/configsave", handleConfigSave);
 
@@ -275,8 +220,43 @@ void CredentialsManager::runAPServer()
 
 bool CredentialsManager::waitReboot()
 {
+    bool mdnsaction = false;
+
     while (true)
     {
+        if(!wifiList.refreshed)
+        {
+            int16_t status = WiFi.scanComplete();
+            if(status == WIFI_SCAN_FAILED) 
+                 status = WiFi.scanNetworks(true);
+                
+
+            if(status == WIFI_SCAN_RUNNING) { Serial.print("."); } //wait
+            else if(status == WIFI_SCAN_FAILED) { } //retry
+            else
+            {
+                wifiList.scanCount = status;
+                wifiList.refreshed = true;
+                Serial.println("wifi scan done");
+            }
+        }
+
+        if (!mdnsaction && (WiFi.status() == WL_CONNECTED))
+        {
+            // Setup MDNS responder
+            if (!MDNS.begin(serverHostname.c_str()))
+            {
+                Serial.println("Error setting up MDNS responder!");
+            }
+            else
+            {
+                Serial.println("mDNS responder started");
+                // Add service to MDNS-SD
+                MDNS.addService("http", "tcp", 80);
+                mdnsaction = true;
+            }
+        }
+
         // DNS
         dnsServer.processNextRequest();
         // HTTP
@@ -395,5 +375,29 @@ void CredentialsManager::loadParameters(uint16_t EE_BaseAddr, bool forcedShowAP)
 
         // Load EEPROM area
         loadEEPROMData();
+    }
+}
+
+bool CredentialsManager::isWifiReacheable()
+{
+    if(!Wifi_SSID.isEmpty())
+    {
+        // Try Connect to wifi
+        Serial.println("Trying conenction to  " + Wifi_SSID);
+        WiFi.begin(Wifi_SSID.c_str(), Wifi_Pwd.c_str());
+
+        bool connected = false;
+        for(uint32_t retry = 0; (retry < 30) && !connected; retry++)
+        {
+            Serial.print(".");
+            delay(500); //Waiting between tries
+            connected = (WiFi.status() == WL_CONNECTED);
+        }
+
+        return connected;
+    }
+    else
+    {
+        return false;
     }
 }

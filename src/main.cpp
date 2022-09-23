@@ -11,19 +11,13 @@
 #include <WiFi.h>
 #include <Wire.h>
 
-// MCP40xx
-const uint8_t POT_UDPin = 16; // UP/DOWN
-const uint8_t POT_CSPin = 18; // CHIP SELECT
-MCP40xx pot = MCP40xx(POT_CSPin, POT_UDPin);
-
-const uint8_t Relay1_Pin = 11;
-const uint8_t Relay2_Pin = 12;
 
 CredentialsManager credentials;
 PurifierManager airManager;
-DustSensor sensorDust;
-AirSensor sensorAir;
+MCP40xx pot{PINS_POT_CS, PINS_POT_UD};
 LedStrip ledStrip;
+DustSensor sensorDust{PINS_DUSTSENSOR_ILED, PINS_DUSTSENSOR_VOUT};
+AirSensor sensorAir;
 
 #ifdef HOMEASSISTANT
 WiFiClient espClient;
@@ -227,8 +221,8 @@ void onPurifierMotorStateChanged(bool state)
     purifierMotor.setState(state);
 
     // Set relay on/off
-    digitalWrite(Relay1_Pin, state);
-    digitalWrite(Relay2_Pin, state);
+    digitalWrite(PINS_REPLAY_1, state);
+    digitalWrite(PINS_REPLAY_2, state);
 }
 
 void onLedBrightnessChanged(uint8_t brightness)
@@ -313,12 +307,10 @@ void callbackMQTT(char *topic, byte *message, unsigned int length)
         if (messageTemp == "on")
         {
             Serial.println("on");
-            digitalWrite(LED_BUILTIN, HIGH);
         }
         else if (messageTemp == "off")
         {
             Serial.println("off");
-            digitalWrite(LED_BUILTIN, LOW);
         }
     }
 }
@@ -477,13 +469,13 @@ void initPurifierPins()
 {
 #if defined(ARDUINO_ARCH_ESP32_C3)
     // Lolin ESP32_C3 has builtin RGB led
-    static const uint8_t LED_BUILTIN = 7;
-    pinMode(LED_BUILTIN, OUTPUT);
+    //TODO Init RGB
+    pinMode(PINS_STATUS_LED, OUTPUT);
 #else
-    pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(PINS_STATUS_LED, OUTPUT);
 #endif
-    pinMode(Relay1_Pin, OUTPUT);
-    pinMode(Relay2_Pin, OUTPUT);
+    pinMode(PINS_REPLAY_1, OUTPUT);
+    pinMode(PINS_REPLAY_2, OUTPUT);
 }
 
 void initDigitalPot()
@@ -512,7 +504,9 @@ void setup()
     // Start try to get wifi/mqtt credentials,
     // This method is blocking while all data are not initalized.
     credentials.init("Air Purifier AP", "airpurifier");
-    credentials.loadParameters(256, false); // EPROM Base address //BME680 need 197 bytes, so start at @256
+    bool forcedMode = true;
+    if(forcedMode || !credentials.isWifiReacheable())
+        credentials.loadParameters(256, forcedMode); // EPROM Base address //BME680 need 197 bytes, so start at @256
 #endif
 
     initPurifierPins();

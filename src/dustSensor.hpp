@@ -3,10 +3,14 @@
 
 #include <Arduino.h>
 
+///////////Sharp DustSensor GP2Y1010AU0F | GP2Y1014AU0F////////
 class DustSensor
 {
   public:
-    DustSensor() = default;
+    DustSensor(const uint8_t ledPin, const uint8_t AnalogOutPin) :
+        iled(ledPin),
+        vout(AnalogOutPin)
+    { }
 
     void init();
     void loop();
@@ -20,9 +24,9 @@ class DustSensor
     float dust_density{nanf("")};
     dustAcquiredCallback acquiredCallback{nullptr};
 
-    /* I/O define */
-    const uint8_t iled = 3; // A2;  //drive the led of sensor
-    const uint8_t vout = 5; // A4;  //analog input
+    //pins 
+    const uint8_t iled;  //drive the led of sensor
+    const uint8_t vout;  //analog input
 };
 
 #endif

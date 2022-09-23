@@ -12,6 +12,7 @@ class CredentialsManager
 
     void init(const char *SSID, const char *hostname);
     void loadParameters(uint16_t EEPROM_BaseAddress, bool forcedShowAP);
+    bool isWifiReacheable();
 
     String getWifiSSID() const { return Wifi_SSID; }
     String getWifiPWD() const { return Wifi_Pwd; }
@@ -25,8 +26,7 @@ class CredentialsManager
     bool waitReboot();
 
     static void handleRoot();
-    static void handleWifi();
-    static void handleWifiSave();
+    static void handleWifiScan();
     static void handleConfig();
     static void handleConfigSave();
     static void handleNotFound();
@@ -49,10 +49,13 @@ class CredentialsManager
     static IPAddress apIP;
     static IPAddress netMsk;
     static WebServer server;
+    static struct wifiList_t{
+        bool refreshed;
+        uint16_t scanCount;
+    }wifiList;
 
     // hostname for DNS. like http://esp32portal.local
     static String serverHostname;
-    // DNS server
     const uint16_t DNS_PORT{53};
     DNSServer dnsServer;
 
