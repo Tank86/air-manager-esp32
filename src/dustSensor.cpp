@@ -32,7 +32,10 @@ uint16_t DustSensor::Filter(uint16_t m)
     }
 }
 
-void DustSensor::registercallBack(dustAcquiredCallback c) { acquiredCallback = c; }
+void DustSensor::registercallBack(dustAcquiredCallback c)
+{
+    acquiredCallback = c;
+}
 
 void DustSensor::init()
 {
@@ -89,17 +92,16 @@ void DustSensor::loop()
         */
         // See http://www.howmuchsnow.com/arduino/airquality/
         dust_density = ((0.17 * (voltage / 1000.0)) - 0.1) * 1000.0;
-        if (dust_density < 0)
-            dust_density = 0;
+        if (dust_density < 0) dust_density = 0;
         Serial.print("The current dust concentration is: ");
         Serial.print(dust_density);
         Serial.print(" ug/m3 ");
-        if (dust_density <= 50)             Serial.print("- Air quality: Excelent");
-        else if (dust_density <= 100)       Serial.print("- Air quality: Average");
-        else if (dust_density <= 150)       Serial.print("- Air quality: Light pollution");
-        else if (dust_density <= 200)       Serial.print("- Air quality: Moderatre pollution");
-        else if (dust_density <= 300)       Serial.print("- Air quality: Heavy pollution");
-        else if (dust_density > 300)        Serial.print("- Air quality: Serious pollution");
+        if (dust_density <= 50) Serial.print("- Air quality: Excelent");
+        else if (dust_density <= 100) Serial.print("- Air quality: Average");
+        else if (dust_density <= 150) Serial.print("- Air quality: Light pollution");
+        else if (dust_density <= 200) Serial.print("- Air quality: Moderatre pollution");
+        else if (dust_density <= 300) Serial.print("- Air quality: Heavy pollution");
+        else if (dust_density > 300) Serial.print("- Air quality: Serious pollution");
         Serial.println("");
 
         //  PM2.5 density  |  Air quality   |  Air quality   | Air quality
@@ -112,7 +114,6 @@ void DustSensor::loop()
         //     250-500     |      ≥300 	    |       VI       |  Serious pullution
 
         // Send dust density
-        if ((acquiredCallback != nullptr) && (!isnan(dust_density)))
-            acquiredCallback(dust_density);
+        if ((acquiredCallback != nullptr) && (!isnan(dust_density))) acquiredCallback(dust_density);
     }
 }

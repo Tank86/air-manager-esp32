@@ -23,9 +23,9 @@ class AirSensor
     bool loadState(Bsec2 bsec);
     bool saveState(Bsec2 bsec);
 
-    Bsec2 bmeSensor;
-    uint8_t bsecState[BSEC_MAX_STATE_BLOB_SIZE]{0};
-    bool initOK{false};
+    Bsec2    bmeSensor;
+    uint8_t  bsecState[BSEC_MAX_STATE_BLOB_SIZE]{0};
+    bool     initOK{false};
     uint16_t EEPROM_BaseAddress{0};
 };
 

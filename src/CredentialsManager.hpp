@@ -10,16 +10,16 @@ class CredentialsManager
   public:
     CredentialsManager() = default;
 
-    void init(const char *SSID, const char *hostname);
+    void init(const char* SSID, const char* hostname);
     void loadParameters(uint16_t EEPROM_BaseAddress, bool forcedShowAP);
     bool isWifiReacheable();
 
-    String   getWifiSSID() const { return Wifi_SSID; }
-    String   getWifiPWD() const { return Wifi_Pwd; }
-    uint16_t getMqttPort() const { return Mqtt_Port; }
-    String   getMqttAddress() const { return Mqtt_Address; }
-    String   getMqttUser() const { return Mqtt_User; }
-    String   getMqttPwd() const { return Mqtt_Pwd; }
+    const char* getWifiSSID() const { return credentials.Wifi_SSID; }
+    const char* getWifiPWD() const { return credentials.Wifi_Pwd; }
+    uint16_t    getMqttPort() const { return credentials.Mqtt_Port; }
+    const char* getMqttAddress() const { return credentials.Mqtt_Server; }
+    const char* getMqttUser() const { return credentials.Mqtt_User; }
+    const char* getMqttPwd() const { return credentials.Mqtt_Pwd; }
 
   private:
     void runAPServer();
@@ -39,8 +39,8 @@ class CredentialsManager
     void        initEEPROMArea();
     bool        isEEPROMContentValid();
     void        loadEEPROMData();
-    static bool writeCredentials(const String &wifi_ssid, const String &wifi_pwd, const String &mqtt_add, uint16_t mqtt_port,
-                                 const String &mqtt_usr, const String &mqtt_pwd);
+    static bool writeCredentials(const String& wifi_ssid, const String& wifi_pwd, const String& mqtt_add, uint16_t mqtt_port,
+                                 const String& mqtt_usr, const String& mqtt_pwd);
 
     // EEPROM Data
     static uint16_t EEPROM_BaseAddress;
@@ -73,12 +73,17 @@ class CredentialsManager
         EE_OFFSET_WIFI_PWD     = 400,
     };
 
-    String   Wifi_SSID{""};
-    String   Wifi_Pwd{""};
-    uint16_t Mqtt_Port{1883};
-    String   Mqtt_Address{""};
-    String   Mqtt_User{""};
-    String   Mqtt_Pwd{""};
+    static constexpr size_t STRMAXLEN = 100;
+
+    struct credentials_t
+    {
+        char     Wifi_SSID[STRMAXLEN]{0};
+        char     Wifi_Pwd[STRMAXLEN]{0};
+        uint16_t Mqtt_Port{1883};
+        char     Mqtt_Server[STRMAXLEN]{0};
+        char     Mqtt_User[STRMAXLEN]{0};
+        char     Mqtt_Pwd[STRMAXLEN]{0};
+    } credentials;
 };
 
 #endif

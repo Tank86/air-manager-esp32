@@ -64,19 +64,16 @@ void PurifierManager::process()
     //     250-500     |      ≥300 	    |       VI       |  Serious pullution
 
     // Automode disabled => exit
-    if (!autoModeActive)
-        return;
-    else
-        Serial.println("Manager Processing");
+    if (!autoModeActive) return;
+    else Serial.println("Manager Processing");
 
     // safety
-    if ((setMotorSpeed == nullptr) || (setLedColor == nullptr))
-        return;
+    if ((setMotorSpeed == nullptr) || (setLedColor == nullptr)) return;
 
     // linear interpolaton of sensors, then take the worst case
-    uint32_t dust_level = isnan(sensor_dust) ? 0 : interpolate(sensor_dust, 35, 300, 0, 255);
-    uint32_t iaq_level = isnan(sensor_iaq) ? 0 : interpolate(sensor_iaq, 50, 300, 0, 255);
-    uint32_t max_level = max(dust_level, iaq_level);
+    uint32_t dust_level        = isnan(sensor_dust) ? 0 : interpolate(sensor_dust, 35, 300, 0, 255);
+    uint32_t iaq_level         = isnan(sensor_iaq) ? 0 : interpolate(sensor_iaq, 50, 300, 0, 255);
+    uint32_t max_level         = max(dust_level, iaq_level);
     uint32_t max_level_percent = (max_level * 100) / 255;
 
     // Set motor speed & led accordingly
@@ -91,13 +88,11 @@ float PurifierManager::interpolate(float val, float x0, float x1, float y0, floa
 {
     if (saturate)
     {
-        if (val < x0)
-            return y0;
-        else if (val > x1)
-            return y1;
+        if (val < x0) return y0;
+        else if (val > x1) return y1;
     }
 
-    float numerator = y0 * (x1 - val) + y1 * (val - x0);
+    float numerator   = y0 * (x1 - val) + y1 * (val - x0);
     float denominator = x1 - x0;
     return numerator / denominator;
 }

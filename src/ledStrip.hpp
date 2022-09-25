@@ -21,8 +21,8 @@ class LedStrip
     void setState(bool active);
 
   private:
-    /* I/O define */
-    #define CHIPSET WS2812
+/* I/O define */
+#define CHIPSET WS2812
     static constexpr uint8_t LED_PIN     = PINS_LEDSTRIP_PIN;
     static constexpr uint8_t NUM_LEDS    = 26;
     static constexpr EOrder  COLOR_ORDER = EOrder::GRB;

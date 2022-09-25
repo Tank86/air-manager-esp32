@@ -137,8 +137,7 @@ bool AirSensor::loadState(Bsec2 bsec)
         }
         Serial.println();
 
-        if (!bsec.setState(bsecState))
-            return false;
+        if (!bsec.setState(bsecState)) return false;
     }
     else
     {
@@ -156,8 +155,7 @@ bool AirSensor::loadState(Bsec2 bsec)
 
 bool AirSensor::saveState(Bsec2 bsec)
 {
-    if (!bsec.getState(bsecState))
-        return false;
+    if (!bsec.getState(bsecState)) return false;
 
     Serial.println("Writing state to EEPROM");
     Serial.print("State file: ");
@@ -192,15 +190,12 @@ void AirSensor::errLeds(void)
 void AirSensor::updateBsecState(Bsec2 bsec)
 {
     static uint16_t stateUpdateCounter = 0;
-    bool update = false;
 
     if (!stateUpdateCounter || (stateUpdateCounter * STATE_SAVE_PERIOD) < millis())
     {
         /* Update every STATE_SAVE_PERIOD minutes */
-        update = true;
         stateUpdateCounter++;
-    }
 
-    if (update && !saveState(bsec))
-        checkBsecStatus(bsec);
+        if (!saveState(bsec)) checkBsecStatus(bsec);
+    }
 }

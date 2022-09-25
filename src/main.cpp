@@ -44,31 +44,38 @@ HASensor dustPM25("pm25");
 
 void onManagerMotorSpeedChanged(uint8_t motorSpeedPercent)
 {
-    Serial.println("Fan speed Changed " + String(motorSpeedPercent));
+    // Speed really changes
+    if (purifierMotor.getSpeed() != motorSpeedPercent)
+    {
+        Serial.println("Fan speed Changed " + String(motorSpeedPercent));
 
-    // Saturation
-    if (motorSpeedPercent > 100)
-        motorSpeedPercent = 100;
+        // Saturation
+        if (motorSpeedPercent > 100) motorSpeedPercent = 100;
 
-    uint16_t potPos = ((motorSpeedPercent * 64) / 100);
+        uint16_t potPos = ((motorSpeedPercent * 64) / 100);
 
-    // Assign pot value according to speed
-    pot.setTap(potPos);
+        // Assign pot value according to speed
+        pot.setTap(potPos);
 
-    // Update mqtt state
-    purifierMotor.setState(motorSpeedPercent != 0);
-    purifierMotor.setSpeed(motorSpeedPercent);
+        // Update mqtt state
+        purifierMotor.setState(motorSpeedPercent != 0);
+        purifierMotor.setSpeed(motorSpeedPercent);
+    }
 }
 
 void onManagerLedColorChanged(uint8_t red, uint8_t green, uint8_t blue)
 {
-    Serial.println("Led Strip Color Changed " + String(red) + ", " + String(green) + ", " + String(blue));
-    ledStrip.set(64, red, green, blue);
+    // Color really changes
+    if (leds.getRed() != red || leds.getGreen() != green || leds.getBlue() != blue)
+    {
+        Serial.println("Led Strip Color Changed " + String(red) + ", " + String(green) + ", " + String(blue));
+        ledStrip.set(64, red, green, blue);
 
-    // Update mqtt state
-    leds.setBrightness(64);
-    leds.setColor(red, green, blue);
-    leds.setState(true);
+        // Update mqtt state
+        leds.setBrightness(64);
+        leds.setColor(red, green, blue);
+        leds.setState(true);
+    }
 }
 
 ///////// MQTT Callbacks/////////////////
@@ -95,33 +102,21 @@ void onBMEDataChanged(const bme68xData data, const bsecOutputs outputs, Bsec2 bs
                 break;
             case BSEC_OUTPUT_CO2_EQUIVALENT:
                 Serial.println("\tc02 equivalent = " + String(output.signal));
-                if (output.accuracy != 0)
-                    co2.setValue(output.signal, 0);
+                if (output.accuracy != 0) co2.setValue(output.signal, 0);
                 break;
             case BSEC_OUTPUT_BREATH_VOC_EQUIVALENT:
                 Serial.println("\tbreath voc equivalent = " + String(output.signal));
-                if (output.accuracy != 0)
-                    vocEquivalent.setValue(output.signal, 2);
+                if (output.accuracy != 0) vocEquivalent.setValue(output.signal, 2);
                 break;
-            case BSEC_OUTPUT_RAW_TEMPERATURE:
-                Serial.println("\ttemperature = " + String(output.signal));
-                break;
+            case BSEC_OUTPUT_RAW_TEMPERATURE: Serial.println("\ttemperature = " + String(output.signal)); break;
             case BSEC_OUTPUT_RAW_PRESSURE:
                 Serial.println("\tpressure = " + String(output.signal));
                 pressure.setValue(output.signal / 100.0f, 1); // convert to mbar
                 break;
-            case BSEC_OUTPUT_RAW_HUMIDITY:
-                Serial.println("\thumidity = " + String(output.signal));
-                break;
-            case BSEC_OUTPUT_RAW_GAS:
-                Serial.println("\tgas resistance = " + String(output.signal));
-                break;
-            case BSEC_OUTPUT_STABILIZATION_STATUS:
-                Serial.println("\tstabilization status = " + String(output.signal));
-                break;
-            case BSEC_OUTPUT_RUN_IN_STATUS:
-                Serial.println("\trun in status = " + String(output.signal));
-                break;
+            case BSEC_OUTPUT_RAW_HUMIDITY: Serial.println("\thumidity = " + String(output.signal)); break;
+            case BSEC_OUTPUT_RAW_GAS: Serial.println("\tgas resistance = " + String(output.signal)); break;
+            case BSEC_OUTPUT_STABILIZATION_STATUS: Serial.println("\tstabilization status = " + String(output.signal)); break;
+            case BSEC_OUTPUT_RUN_IN_STATUS: Serial.println("\trun in status = " + String(output.signal)); break;
             case BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE:
                 Serial.println("\ttemperature comp = " + String(output.signal));
                 temp.setValue(output.signal, 1);
@@ -130,27 +125,13 @@ void onBMEDataChanged(const bme68xData data, const bsecOutputs outputs, Bsec2 bs
                 Serial.println("\thumidity comp = " + String(output.signal));
                 humidity.setValue(output.signal, 0);
                 break;
-            case BSEC_OUTPUT_COMPENSATED_GAS:
-                Serial.println("\tcompensated gas = " + String(output.signal));
-                break;
-            case BSEC_OUTPUT_GAS_PERCENTAGE:
-                Serial.println("\tgas percentage = " + String(output.signal));
-                break;
-            case BSEC_OUTPUT_GAS_ESTIMATE_1:
-                Serial.println("\tgas estimate 1 = " + String(output.signal));
-                break;
-            case BSEC_OUTPUT_GAS_ESTIMATE_2:
-                Serial.println("\tgas estimate 2 = " + String(output.signal));
-                break;
-            case BSEC_OUTPUT_GAS_ESTIMATE_3:
-                Serial.println("\tgas estimate 3 = " + String(output.signal));
-                break;
-            case BSEC_OUTPUT_GAS_ESTIMATE_4:
-                Serial.println("\tgas estimate 4 = " + String(output.signal));
-                break;
-            default:
-                Serial.println("\t!!!OUCH SENSOR UNKNOWN = " + String(output.sensor_id) + String(output.signal));
-                break;
+            case BSEC_OUTPUT_COMPENSATED_GAS: Serial.println("\tcompensated gas = " + String(output.signal)); break;
+            case BSEC_OUTPUT_GAS_PERCENTAGE: Serial.println("\tgas percentage = " + String(output.signal)); break;
+            case BSEC_OUTPUT_GAS_ESTIMATE_1: Serial.println("\tgas estimate 1 = " + String(output.signal)); break;
+            case BSEC_OUTPUT_GAS_ESTIMATE_2: Serial.println("\tgas estimate 2 = " + String(output.signal)); break;
+            case BSEC_OUTPUT_GAS_ESTIMATE_3: Serial.println("\tgas estimate 3 = " + String(output.signal)); break;
+            case BSEC_OUTPUT_GAS_ESTIMATE_4: Serial.println("\tgas estimate 4 = " + String(output.signal)); break;
+            default: Serial.println("\t!!!OUCH SENSOR UNKNOWN = " + String(output.sensor_id) + String(output.signal)); break;
         }
 
         // Send sensor value to process
@@ -173,12 +154,10 @@ void onDustChanged(float dust)
     }
 }
 
-void onAutoModeChanged(bool state, HASwitch *s)
+void onAutoModeChanged(bool state, HASwitch* s)
 {
-    if (state)
-        Serial.println("Automatic mode enabled");
-    else
-        Serial.println("Automatic mode disabled");
+    if (state) Serial.println("Automatic mode enabled");
+    else Serial.println("Automatic mode disabled");
 
     s->setState(state);
     airManager.setAutoMode(state);
@@ -196,8 +175,7 @@ void onPurifierMotorSpeedChanged(uint16_t speed)
     }
 
     // Saturation
-    if (speed > 100)
-        speed = 100;
+    if (speed > 100) speed = 100;
 
     uint16_t potPos = ((speed * 64) / 100);
     // Assign pot value according to speed
@@ -256,7 +234,7 @@ void onLedStateChanged(bool state)
 #include <wifiCredentials.hpp>
 #endif
 
-void initWIFI(const char *ssid, const char *password)
+void initWIFI(const char* ssid, const char* password)
 {
     // Unique ID must be set!
     byte mac[6]; // WL_MAC_ADDR_LENGTH];
@@ -282,7 +260,7 @@ WiFiClient   espClient;
 PubSubClient client(espClient);
 long         lastMsg = 0;
 
-void callbackMQTT(char *topic, byte *message, unsigned int length)
+void callbackMQTT(char* topic, byte* message, unsigned int length)
 {
     Serial.print("Message arrived on topic: ");
     Serial.print(topic);
@@ -336,7 +314,7 @@ void reconnect()
     }
 }
 
-void initMQTT(const char *address, uint16_t port, const char *user = nullptr, const char *pwd = nullptr)
+void initMQTT(const char* address, uint16_t port, const char* user = nullptr, const char* pwd = nullptr)
 {
     client.setServer(address, port, user, pwd);
     client.setCallback(callbackMQTT);
@@ -388,8 +366,10 @@ void loopMQTT()
 #else
 /////////////////// Home assistant device ///////////
 
-void initMQTT(const char *address, uint16_t port, const char *user = nullptr, const char *pwd = nullptr)
+void initMQTT(const char* address, uint16_t port, const char* user = nullptr, const char* pwd = nullptr)
 {
+    Serial.println("Connection to mqtt server " + String(address) + ":" + String(port) + ((user != nullptr) ? ("@" + String(user)) : ""));
+
     // set device's details (optional)
     device.setName("air-manager");
     device.setManufacturer("Tank86 electronics");
@@ -456,7 +436,10 @@ void initMQTT(const char *address, uint16_t port, const char *user = nullptr, co
     mqtt.begin(address, port, user, pwd);
 }
 
-void loopMQTT() { mqtt.loop(); }
+void loopMQTT()
+{
+    mqtt.loop();
+}
 
 #endif
 /////////////////////////////////////////////////////////////////////
@@ -502,8 +485,7 @@ void setup()
     // This method is blocking while all data are not initalized.
     credentials.init("Air Purifier AP", "airpurifier");
     bool forcedMode = false;
-    if (forcedMode || !credentials.isWifiReacheable())
-        credentials.loadParameters(256, forcedMode); // EPROM Base address //BME680 need 197 bytes, so start at @256
+    credentials.loadParameters(256, forcedMode); // EPROM Base address //BME680 need 197 bytes, so start at @256
 #endif
 
     initPurifierPins();
@@ -519,18 +501,12 @@ void setup()
 
 #if defined(HARDCODED_CREDENTIALS)
     initWIFI(wifi_ssid, wifi_password);
-    if (!String(mqtt_user).isEmpty() && !String(mqtt_pwd).isEmpty())
-        initMQTT(mqtt_server, mqtt_port, mqtt_user, mqtt_pwd);
-    else
-        initMQTT(mqtt_server, mqtt_port);
-
+    initMQTT(mqtt_server, mqtt_port, strlen(mqtt_user) ? mqtt_user : NULL, strlen(mqtt_pwd) ? mqtt_pwd : NULL);
 #else
-    initWIFI(credentials.getWifiSSID().c_str(), credentials.getWifiPWD().c_str());
-    if (!credentials.getMqttUser().isEmpty() && !credentials.getMqttUser().isEmpty())
-        initMQTT(credentials.getMqttAddress().c_str(), credentials.getMqttPort(), credentials.getMqttUser().c_str(),
-                 credentials.getMqttPwd().c_str());
-    else
-        initMQTT(credentials.getMqttAddress().c_str(), credentials.getMqttPort());
+    initWIFI(credentials.getWifiSSID(), credentials.getWifiPWD());
+    initMQTT(credentials.getMqttAddress(), credentials.getMqttPort(),
+             credentials.getMqttUser()[0] == 0 ? nullptr : credentials.getMqttUser(),
+             credentials.getMqttPwd()[0] == 0 ? nullptr : credentials.getMqttPwd());
 #endif
 }
 

@@ -29,8 +29,7 @@ void LedStrip::demo()
 
 void LedStrip::loop()
 {
-    if (ledStripAcive && (brightness > 0))
-        FastLED.show();
+    if (ledStripAcive && (brightness > 0)) FastLED.show();
 }
 
 void LedStrip::setBrightness(uint8_t brightness)
@@ -58,10 +57,8 @@ void LedStrip::setState(bool active)
 {
     ledStripAcive = active;
 
-    if (active)
-        FastLED.setBrightness(brightness);
-    else
-        FastLED.setBrightness(0);
+    if (active) FastLED.setBrightness(brightness);
+    else FastLED.setBrightness(0);
 
     FastLED.show();
 }

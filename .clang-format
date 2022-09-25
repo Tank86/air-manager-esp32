@@ -3,6 +3,9 @@ UseTab: Never
 IndentWidth: 4
 TabWidth: 4
 BreakBeforeBraces: Allman
+#BreakBeforeBraces: Custom
+#BraceWrapping:
+#  SplitEmptyFunction: false
 AllowShortIfStatementsOnASingleLine: false
 IndentCaseLabels: true
 ColumnLimit: 140
@@ -10,3 +13,16 @@ AlignArrayOfStructures: Left
 AlignConsecutiveAssignments: Consecutive 
 AlignConsecutiveDeclarations: Consecutive 
 AlignOperands: true
+PointerAlignment: Left
+ReferenceAlignment: Left
+PackConstructorInitializers: Never
+BreakConstructorInitializers: AfterColon
+BreakInheritanceList: AfterColon
+SpaceBeforeCtorInitializerColon: true
+BreakStringLiterals: false
+
+#not sure of the followings
+AllowShortBlocksOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortCaseLabelsOnASingleLine: true
