@@ -71,7 +71,7 @@ void DustSensor::loop()
 {
     static uint32_t lastAcqTimer = millis();
 
-    if ((millis() - lastAcqTimer) > (100))
+    if ((millis() - lastAcqTimer) > (1000))
     {
         lastAcqTimer = millis();
         uint16_t adcValueRaw;
