@@ -1,4 +1,5 @@
 #include "dustSensor.hpp"
+#include "esp_adc_cal.h"
 
 uint16_t DustSensor::Filter(uint16_t m)
 {
@@ -32,6 +33,17 @@ uint16_t DustSensor::Filter(uint16_t m)
     }
 }
 
+uint32_t DustSensor::readADC_Cal(uint16_t ADC_Raw)
+{
+    esp_adc_cal_characteristics_t adc_chars;
+#if defined(ARDUINO_ARCH_ESP32_S2)
+    esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_13, 1100, &adc_chars);
+#else
+    esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
+#endif
+    return (esp_adc_cal_raw_to_voltage(ADC_Raw, &adc_chars));
+}
+
 void DustSensor::registercallBack(dustAcquiredCallback c)
 {
     acquiredCallback = c;
@@ -43,56 +55,66 @@ void DustSensor::init()
     pinMode(iled, OUTPUT);
     digitalWrite(iled, LOW);
 
+    // Configure adc
+    adc_set_clk_div(1); // We want fastest possible measurement
+    adc1_config_channel_atten(adcChannel, ADC_ATTEN_DB_11);
+#if defined(ARDUINO_ARCH_ESP32_S2)
+    adc1_config_width(ADC_WIDTH_BIT_13); // (13 bits is the HW resolution: 0-8191)
+#else
+    adc1_config_width(ADC_WIDTH_BIT_12); // (12 bits is the HW resolution: 0-4095)
+#endif
+
     Serial.println("Dust sensor initialised");
 }
 
 void DustSensor::loop()
 {
-    static const float    COV_RATIO       = 0.17; // ug/mmm / mv
-    static const uint16_t NO_DUST_VOLTAGE = 600;  // mv
-    static const uint16_t SYS_VOLTAGE     = 3300;
-
     static uint32_t lastAcqTimer = millis();
 
-    if ((millis() - lastAcqTimer) > (1000))
+    if ((millis() - lastAcqTimer) > (100))
     {
         lastAcqTimer = millis();
+        uint16_t adcValueRaw;
 
-        //  get adcvalue
+        adc_power_acquire();
+        // ACtivate the pulse, do the adc measurment, then stop the pulse
         digitalWrite(iled, HIGH);
         delayMicroseconds(280);
-        analogReadResolution(12); // 12 bits
-        analogSetAttenuation(ADC_11db);
-        // ADC_0db provides no attenuation so IN/OUT = 1 / 1 an input of 3 volts remains at 3 volts before ADC measurement
-        // ADC_2_5db provides an attenuation so that IN/OUT = 1 / 1.34 an input of 3 volts is reduced to 2.238 volts before ADC measurement
-        // ADC_6db provides an attenuation so that IN/OUT = 1 / 2 an input of 3 volts is reduced to 1.500 volts before ADC measurement
-        // ADC_11db provides an attenuation so that IN/OUT = 1 / 3.6 an input of 3 volts is reduced to 0.833 volts before ADC measurement
-
-        // uint16_t adcvalue = analogRead(vout);
-        uint16_t adcvalue = analogReadMilliVolts(vout);
+        // Use esp idf measurement as it is WAYYYYYYY faster than arduino, so the value is correctly read at a precise time
+        adcValueRaw = adc1_get_raw(adcChannel);
+        // adcValueRaw = analogRead(vout); //Start the adc reading here, as it takes a long time to read the value
         digitalWrite(iled, LOW);
+        adc_power_release();
 
-        //  convert voltage (mv)
-        // voltage = (SYS_VOLTAGE / 1024.0) * adcvalue * 11;
-        // 4.56 => 2.275 (Ratio = 0,5)
-        // 3.3V 12bits => 3.3/4096 = 0.8mV/step
-        float voltage = (adcvalue * (1.0 / 0.5));
-        // Serial.print("Adc(mV): "); Serial.print(adcvalue); Serial.print(" Volt(mV) : "); Serial.println(voltage);
+        // convert adc to voltage using internal efuse calibration
+        uint16_t adcvalue = readADC_Cal(adcValueRaw);
+        // Serial.println("Dust Volatage: Raw=" + String(adcValueRaw) + "  Count   " + String(adcvalue) + "mV");
+
+        // We have a 50% resistor divider so multiply by 2
+        float voltage = (adcvalue * 2.0);
 
         // Average filter
         voltage = Filter(voltage);
 
         // voltage to density
-        /*
-        if(voltage >= NO_DUST_VOLTAGE) {
-          voltage -= NO_DUST_VOLTAGE;
-          density = voltage * COV_RATIO;
-        } else
-          density = 0;
-        */
+#if false
+        static const float    COV_RATIO       = 0.2; // ug/mmm / mv
+        static const uint16_t NO_DUST_VOLTAGE = 400;  // mv
+
+        if (voltage >= NO_DUST_VOLTAGE)
+        {
+            voltage -= NO_DUST_VOLTAGE;
+            dust_density = voltage * COV_RATIO;
+        }
+        else dust_density = 0;
+#else
         // See http://www.howmuchsnow.com/arduino/airquality/
-        dust_density = ((0.17 * (voltage / 1000.0)) - 0.1) * 1000.0;
+        //dust_density = ((0.172 * (voltage / 1000.0)) - 0.0999) * 1000.0;
+        dust_density = ((0.172 * (voltage / 1000.0)) - 0.085) * 1000.0;
         if (dust_density < 0) dust_density = 0;
+#endif
+
+#if true
         Serial.print("The current dust concentration is: ");
         Serial.print(dust_density);
         Serial.print(" ug/m3 ");
@@ -103,7 +125,7 @@ void DustSensor::loop()
         else if (dust_density <= 300) Serial.print("- Air quality: Heavy pollution");
         else if (dust_density > 300) Serial.print("- Air quality: Serious pollution");
         Serial.println("");
-
+#endif
         //  PM2.5 density  |  Air quality   |  Air quality   | Air quality
         // value(μg/m3)    |  index  (AQi)  |     level      |  evaluation
         //     0-35        |      0-50      |        I       |  Excellent

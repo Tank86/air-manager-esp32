@@ -65,7 +65,7 @@ void PurifierManager::process()
 
     // Automode disabled => exit
     if (!autoModeActive) return;
-    else Serial.println("Manager Processing");
+    // else Serial.println("Manager Processing");
 
     // safety
     if ((setMotorSpeed == nullptr) || (setLedColor == nullptr)) return;
