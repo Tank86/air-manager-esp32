@@ -1,0 +1,104 @@
+type: custom:bar-card
+title: Air quality
+entities:
+  - entity: sensor.airpurifier_iaq
+    name: Air Quality Indice
+    min: 0
+    max: 500
+    bar-card-border-radius: 10
+    severity:
+      - color: Blue
+        to: '50'
+        attribute: Good
+        from: '0'
+      - color: Green
+        from: '51'
+        to: '100'
+        attribute: Moderate
+      - color: Yellow
+        from: '101'
+        to: '150'
+        attribute: Unhealthy for sensitives
+      - color: Orange
+        from: '151'
+        to: '200'
+        attribute: Hunhealty
+      - color: Red
+        from: '201'
+        to: '300'
+        attribute: Very Hunhealty
+      - color: Maroon
+        from: '301'
+        to: '500'
+        attribute: Harzardous
+  - entity: sensor.airpurifier_co2_equivalent
+    name: CO2
+    min: 500
+    max: 2000
+    severity:
+      - color: Green
+        from: '0'
+        to: '800'
+        attribute: Good
+      - color: Orange
+        from: '801'
+        to: '1200'
+        attribute: Warning
+      - color: Red
+        from: '1200'
+        to: '2000'
+        attribute: Bad
+  - entity: sensor.airpurifier_voc_equivalent
+    name: Breath VOC
+    min: 0
+    max: 5
+    severity:
+      - color: Green
+        from: '0'
+        to: '0.07'
+        attribute: Excellent
+      - color: Green
+        from: '0.08'
+        to: '0.22'
+        attribute: Good
+      - color: Yellow
+        from: '0.23'
+        to: '0.66'
+        attribute: Moderate
+      - color: Orange
+        from: '0.67'
+        to: '2.2'
+        attribute: Poor
+      - color: Red
+        from: '2.3'
+        to: '5.5'
+        attribute: Unhealty
+  - entity: sensor.airpurifier_pm2_5_dust_sensor
+    name: Dust particules (PM2.5)
+    min: 0
+    max: 350
+    severity:
+      - color: Blue
+        from: '0'
+        to: '50'
+        attribute: Excelent
+      - color: Green
+        from: '51'
+        to: '100'
+        attribute: Average
+      - color: Yellow
+        from: '101'
+        to: '150'
+        attribute: Light pollution
+      - color: Orange
+        from: '151'
+        to: '200'
+        attribute: Moderatre pollution
+      - color: Red
+        from: '201'
+        to: '300'
+        attribute: Heavy pollution
+      - color: Marron
+        from: '301'
+        to: '500'
+        attribute: Serious pollution

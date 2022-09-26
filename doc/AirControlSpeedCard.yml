@@ -1,0 +1,14 @@
+type: custom:slider-button-card
+entity: fan.airpurifier_speed
+slider:
+  direction: left-right
+  background: triangle
+  show_track: true
+icon:
+  tap_action:
+    action: more-info
+action_button:
+  tap_action:
+    action: toggle
+  mode: custom
+name: Motor speed

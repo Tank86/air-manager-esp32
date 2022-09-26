@@ -358,11 +358,11 @@ void CredentialsManager::loadEEPROMData()
     memcpy(credentials.Wifi_Pwd, str.c_str(), str.length());
     str = EEPROM.readString(EEPROM_BaseAddress + EE_OFFSET_MQTT_ADDRESS);
     memcpy(credentials.Mqtt_Server, str.c_str(), str.length());
-    credentials.Mqtt_Port = EEPROM.readUShort(EEPROM_BaseAddress + EE_OFFSET_MQTT_PORT);
-    str                   = EEPROM.readString(EEPROM_BaseAddress + EE_OFFSET_MQTT_USER);
+    str = EEPROM.readString(EEPROM_BaseAddress + EE_OFFSET_MQTT_USER);
     memcpy(credentials.Mqtt_User, str.c_str(), str.length());
     str = EEPROM.readString(EEPROM_BaseAddress + EE_OFFSET_MQTT_PWD);
     memcpy(credentials.Mqtt_Pwd, str.c_str(), str.length());
+    credentials.Mqtt_Port = EEPROM.readUShort(EEPROM_BaseAddress + EE_OFFSET_MQTT_PORT);
 }
 
 /*
@@ -433,6 +433,7 @@ void CredentialsManager::loadParameters(uint16_t EE_BaseAddr, bool forcedShowAP)
 
 bool CredentialsManager::isWifiReacheable()
 {
+    // If wifi password is not empty
     if (!credentials.Wifi_SSID[0] == 0)
     {
         // Try Connect to wifi

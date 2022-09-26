@@ -1,0 +1,19 @@
+type: custom:slider-button-card
+entity: light.airpurifier_strip
+slider:
+  direction: left-right
+  background: gradient
+  use_state_color: true
+  use_percentage_bg_opacity: false
+icon:
+  tap_action:
+    action: more-info
+  use_state_color: false
+  show: true
+action_button:
+  mode: custom
+  show: true
+  icon: mdi:palette
+  tap_action:
+    action: more-info
+compact: false
