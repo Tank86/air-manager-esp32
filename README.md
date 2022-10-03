@@ -56,7 +56,6 @@ Le mode automatique est désactivable via un topic MQTT.
  - LedStrip    => homeassistant/light/'MACADDRESS'/
  - Motor       => homeassistant/fan/'MACADDRESS'/
  - AutoMode    => homeassistant/switch/'MACADDRESS'/
- - Motor       => homeassistant/fan/'MACADDRESS'/
  - All sensors => homeassistant/sensor/'MACADDRESS'/
 
 | Topic                 |   Commande    |  Status               | Format                |
@@ -86,6 +85,8 @@ Le mode automatique est désactivable via un topic MQTT.
 | vocEquivalent value   | N/A           |   vocEquivalent/state   |   float string        |
 | pm25 config           | N/A           |   pm25/config         |   Homeassistant json  |
 | pm25 value            | N/A           |   pm25/state          |   float string        |
+| wifi rssi config      | N/A           |   pm25/config         |   Homeassistant json  |
+| wifi rssi value       | N/A           |   pm25/state          |   float string        |
 
 ## Homeassistant
 Le soft va fournir toutes les configuration nécéssaire a homeassistant (icone, unité, nom, plage d'ajustement).

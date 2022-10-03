@@ -36,6 +36,7 @@ HASensor iaq("iaq");                     // quality air index
 HASensor iaqAccuracy("iaqAccuracy");     // 0: stabilisation, 1, low, 2, medium, 3, high
 HASensor vocEquivalent("vocEquivalent"); // breath voc equivalent (ppm)
 HASensor dustPM25("pm25");
+HASensor wifiRSSI("wrssi");
 #else
 // TODO some basic mqtt objects
 #endif
@@ -374,7 +375,7 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     device.setName("air-manager");
     device.setManufacturer("Tank86 electronics");
     device.setModel("Air purifier station");
-    device.setSoftwareVersion("1.0.0");
+    device.setSoftwareVersion("1.0.1");
 
     autoMode.setIcon("mdi:refresh-auto");
     autoMode.setName("Automatic mode");
@@ -432,13 +433,28 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     dustPM25.setIcon("mdi:weather-dust");
     dustPM25.setName("AirPurifier PM2.5 (dust sensor)");
 
+    wifiRSSI.setDeviceClass("signal_strength");
+    wifiRSSI.setUnitOfMeasurement("dbm");
+    wifiRSSI.setName("Wifi signal strength");
+    wifiRSSI.setIcon("mdi:signal-variant");
+
     // Connect to MQTT server
     mqtt.begin(address, port, user, pwd);
 }
 
 void loopMQTT()
 {
+    static uint32_t lastUpdate = millis();
+
     mqtt.loop();
+
+    uint32_t now = millis();
+    // Every 5 minutes
+    if ((now - lastUpdate) > (5 * 60 * 1000))
+    {
+        lastUpdate = now;
+        if (WiFi.isConnected()) wifiRSSI.setValue(WiFi.RSSI());
+    }
 }
 
 #endif
