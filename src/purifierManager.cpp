@@ -38,21 +38,43 @@ void PurifierManager::process(const bsecData sensor)
     }
 }
 
-void PurifierManager::setAutoMode(bool active)
+bool PurifierManager::setMode(Modes newMode)
 {
-    // Process data only if automode was not active befores
-    if (active && !autoModeActive)
+    if (!isModeValid(newMode)) return false;
+    else
     {
-        process();
-    }
+        // Alwsays set private mode
+        currentMode = newMode;
 
-    // Alwsays re-set private mode
-    autoModeActive = active;
+        // Process data
+        process();
+
+        // Mode is valid, process has occured
+        return true;
+    }
 }
 
+// General process function Process modes according to currentMode
 void PurifierManager::process()
 {
-    // General process function (according to sensors values)
+    // Serial.println("Manager Processing");
+
+    // safety
+    if ((setMotorSpeed == nullptr) || (setLedColor == nullptr)) return;
+
+    switch (currentMode)
+    {
+        case Modes::Off: processOff(); break;
+        case Modes::Automatic: processAuto(); break;
+        case Modes::Night: processNight(); break;
+        default:
+            // ManualMode or unsupported, do nothing
+            break;
+    }
+}
+
+void PurifierManager::processAuto()
+{
     // TODO : For the moment only very basic function (a linearity algorithm must be computed)
 
     //  PM2.5 density  |  Air quality   |  Air quality   | Air quality
@@ -62,13 +84,6 @@ void PurifierManager::process()
     //     115-150     |      151-200   |       IV       |  Moderate pollution
     //     150-250     |      201-300   |        V       |  Heavy pollution
     //     250-500     |      ≥300 	    |       VI       |  Serious pullution
-
-    // Automode disabled => exit
-    if (!autoModeActive) return;
-    // else Serial.println("Manager Processing");
-
-    // safety
-    if ((setMotorSpeed == nullptr) || (setLedColor == nullptr)) return;
 
     // linear interpolaton of sensors, then take the worst case
     uint32_t dust_level        = isnan(sensor_dust) ? 0 : interpolate(sensor_dust, 35, 300, 0, 255);
@@ -82,6 +97,29 @@ void PurifierManager::process()
     //  - full/red  if quality is very bad
     setMotorSpeed(max_level_percent);
     setLedColor(max_level, (255 - max_level), 0);
+}
+
+void PurifierManager::processNight()
+{
+    // linear interpolaton of sensors, then take the worst case
+    uint32_t dust_level        = isnan(sensor_dust) ? 0 : interpolate(sensor_dust, 35, 300, 0, 255);
+    uint32_t iaq_level         = isnan(sensor_iaq) ? 0 : interpolate(sensor_iaq, 50, 300, 0, 255);
+    uint32_t max_level         = max(dust_level, iaq_level);
+    uint32_t max_level_percent = (max_level * 100) / 255;
+
+    // Night mode
+    // - color is off
+    // - fan speed is max 30%
+    if (max_level_percent > 30) max_level_percent = 30;
+
+    setMotorSpeed(max_level_percent);
+    setLedColor(0, 0, 0);
+}
+
+void PurifierManager::processOff()
+{
+    setMotorSpeed(0);
+    setLedColor(0, 0, 0);
 }
 
 float PurifierManager::interpolate(float val, float x0, float x1, float y0, float y1, bool saturate)

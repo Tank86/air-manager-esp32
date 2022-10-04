@@ -24,10 +24,9 @@ HADevice   device;
 HAMqtt     mqtt(espClient, device);
 // See https://www.home-assistant.io/integrations/#search/mqtt
 // See https://www.home-assistant.io/integrations/sensor/#device-class
-
 HALight  leds("ledStrip", HALight::BrightnessFeature | HALight::ColorRGBFeature);
 HAFan    purifierMotor("motor", HAFan::SpeedsFeature); // AirPurifier Motor
-HASwitch autoMode("AutoMode");                         // Represent the mode of the purifier (Automatic/manual)
+HASelect purifierMode("mode"); // Represent the mode of the purifier (Off/Manual/Automatic/NightMode)
 HASensor temp("temperature");
 HASensor humidity("humidity");
 HASensor pressure("pressure");
@@ -156,24 +155,29 @@ void onDustChanged(float dust)
     }
 }
 
-void onAutoModeChanged(bool state, HASwitch* s)
+void onPurifierModeChanged(int8_t index, HASelect* sender)
 {
-    if (state) Serial.println("Automatic mode enabled");
-    else Serial.println("Automatic mode disabled");
+    if (!airManager.setMode(index))
+    {
+        Serial.println("Invalid/unknown mode");
+    }
+    else
+    {
+        Serial.println("Mode changed to: " + String(airManager.getModeStr()));
 
-    s->setState(state);
-    airManager.setAutoMode(state);
+        sender->setState(index);
+    }
 }
 
 void onPurifierMotorSpeedChanged(uint8_t speed, HAFan* sender)
 {
     Serial.println("Fan speed received " + String(speed));
 
-    if (autoMode.getCurrentState())
+    if (!airManager.isAutoModeActive())
     {
-        // Auto mode disabled
-        // autoMode.setState(false); //FIXME: in the lib ????
-        // airManager.setAutoMode(false);  //FIXME: in the lib ????
+        // Auto mode disabled, but manual override => disable auto mode
+        // airManager.setMode(PurifierManager::Modes::Manual);
+        // purifierMode.setState(airManager.getModeIndex()); //FIXME: in the lib ????
     }
 
     uint16_t potPos = ((speed * 64) / 100);
@@ -187,11 +191,11 @@ void onPurifierMotorStateChanged(bool state, HAFan* sender)
 {
     Serial.println("Fan state received " + String(state));
 
-    if (autoMode.getCurrentState())
+    if (!airManager.isAutoModeActive())
     {
-        // Auto mode disabled
-        // autoMode.setState(false); //FIXME: in the lib ????
-        // airManager.setAutoMode(false);  //FIXME: in the lib ????
+        // Auto mode disabled, but manual override => disable auto mode
+        // airManager.setMode(PurifierManager::Modes::Manual);
+        // purifierMode.setState(airManager.getModeIndex()); //FIXME: in the lib ????
     }
 
     // send instant feedback
@@ -377,14 +381,15 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     Serial.println("Connection to mqtt server " + String(address) + ":" + String(port) + ((user != nullptr) ? ("@" + String(user)) : ""));
 
     // set device's details (optional)
-    device.setName("air-manager");
+    device.setName("Air Manager");
+    device.setModel("Air Tower 1");
     device.setManufacturer("Tank86 electronics");
-    device.setModel("Air purifier station");
-    device.setSoftwareVersion("1.1.0");
+    device.setSoftwareVersion("2.0.0");
 
-    autoMode.setIcon("mdi:refresh-auto");
-    autoMode.setName("Automatic mode");
-    autoMode.onCommand(onAutoModeChanged);
+    purifierMode.setIcon("mdi:refresh-auto");
+    purifierMode.setName("Purifier mode");
+    purifierMode.setOptions(airManager.getModeListStr());
+    purifierMode.onCommand(onPurifierModeChanged);
 
     // purifierMotor.setRetain(true);
     purifierMotor.onSpeedCommand(onPurifierMotorSpeedChanged);
@@ -446,8 +451,8 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     // Connect to MQTT server
     mqtt.begin(address, port, user, pwd);
 
-    //default auto mode is active
-    autoMode.setState(true);
+    // set mode accordingly to the manager
+    purifierMode.setState(airManager.getCurrentMode(), true);
 }
 
 void loopMQTT()
