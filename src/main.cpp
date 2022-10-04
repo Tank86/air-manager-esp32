@@ -21,21 +21,21 @@ AirSensor          sensorAir;
 #ifdef HOMEASSISTANT
 WiFiClient espClient;
 HADevice   device;
-HAMqtt     mqtt(espClient, device);
+HAMqtt     mqtt(espClient, device, 15); //Max 15 sensors
 // See https://www.home-assistant.io/integrations/#search/mqtt
 // See https://www.home-assistant.io/integrations/sensor/#device-class
 HALight  leds("ledStrip", HALight::BrightnessFeature | HALight::ColorRGBFeature);
 HAFan    purifierMotor("motor", HAFan::SpeedsFeature); // AirPurifier Motor
 HASelect purifierMode("mode"); // Represent the mode of the purifier (Off/Manual/Automatic/NightMode)
+HASensor wifiRSSI("wrssi");
+HASensor dustPM25("pm25");
 HASensor temp("temperature");
 HASensor humidity("humidity");
 HASensor pressure("pressure");
-HASensor co2("co2_equivalent");
-HASensor iaq("iaq");                     // quality air index
 HASensor iaqAccuracy("iaqAccuracy");     // 0: stabilisation, 1, low, 2, medium, 3, high
+HASensor iaq("iaq");                     // quality air index
+HASensor co2("co2_equivalent");
 HASensor vocEquivalent("vocEquivalent"); // breath voc equivalent (ppm)
-HASensor dustPM25("pm25");
-HASensor wifiRSSI("wrssi");
 #else
 // TODO some basic mqtt objects
 #endif
@@ -386,12 +386,14 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     device.setManufacturer("Tank86 electronics");
     device.setSoftwareVersion("2.0.0");
 
+    // Use last will message
+    device.enableLastWill();
+
     purifierMode.setIcon("mdi:refresh-auto");
     purifierMode.setName("Purifier mode");
     purifierMode.setOptions(airManager.getModeListStr());
     purifierMode.onCommand(onPurifierModeChanged);
 
-    // purifierMotor.setRetain(true);
     purifierMotor.onSpeedCommand(onPurifierMotorSpeedChanged);
     purifierMotor.onStateCommand(onPurifierMotorStateChanged);
     purifierMotor.setSpeedRangeMin(1);
@@ -445,7 +447,7 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
 
     wifiRSSI.setDeviceClass("signal_strength");
     wifiRSSI.setUnitOfMeasurement("dbm");
-    wifiRSSI.setName("Wifi signal strength");
+    wifiRSSI.setName("AirPurifier Wifi signal strength");
     wifiRSSI.setIcon("mdi:signal-variant");
 
     // Connect to MQTT server
@@ -462,8 +464,8 @@ void loopMQTT()
     mqtt.loop();
 
     uint32_t now = millis();
-    // Every 5 minutes
-    if ((now - lastUpdate) > (5 * 60 * 1000))
+    // Every 15 minutes
+    if ((now - lastUpdate) > (15 * 60 * 1000))
     {
         lastUpdate = now;
         if (WiFi.isConnected()) wifiRSSI.setValue(WiFi.RSSI());
