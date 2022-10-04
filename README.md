@@ -55,38 +55,38 @@ Le mode automatique est désactivable via un topic MQTT.
 
  - LedStrip    => homeassistant/light/'MACADDRESS'/
  - Motor       => homeassistant/fan/'MACADDRESS'/
- - AutoMode    => homeassistant/switch/'MACADDRESS'/
+ - AutoMode    => homeassistant/select/'MACADDRESS'/
  - All sensors => homeassistant/sensor/'MACADDRESS'/
 
-| Topic                 |   Commande    |  Status               | Format                |
-|-----------------------|:-------------:|:---------------------:|:---------------------:|
-| AutoMode config       |  N/A          |   AutoMode/config     |   Homeassistant json  |
-| AutoMode ON/OFF       | AutoMode/cmd  |   AutoMode/state      |   'ON'/'OFF'          |
-| LedStrip config       |  N/A          |   ledStrip/config     |   Homeassistant json  |
-| LedStrip ON/OFF       | ledStrip/cmd  |   ledStrip/state      |   'ON'/'OFF'          |
-| LedStrip brightness   | ledStrip/bct  |   ledStrip/bst        |   '0' <> '100'        |
-| LedStrip color        | ledStrip/rct  |   ledStrip/rst        |   r,g,b(decimal) or #RRGGBB(hexa)|
-| Motor config          |  N/A          |   motor/config        |   Homeassistant json  |
-| Motor ON/OFF          | motor/cmd     |   motor/state         |   'ON'/'OFF'          |
-| Motor speed           | motor/sct     |   motor/sst           |   '0' <> '100'        |
-| temperature config    | N/A           |   temperature/config  |   Homeassistant json  |
-| temperature value     | N/A           |   temperature/state   |   float string        |
-| humidity config       | N/A           |   humidity/config     |   Homeassistant json  |
-| humidity value        | N/A           |   humidity/state      |   float string        |
-| pressure config       | N/A           |   pressure/config     |   Homeassistant json  |
-| pressure value        | N/A           |   pressure/state      |   float string        |
-| co2_equivalent config | N/A           |   co2_equivalent/config  |   Homeassistant json  |
-| co2_equivalent value  | N/A           |   co2_equivalent/state   |   float string        |
-| iaq config            | N/A           |   iaq/config          |   Homeassistant json  |
-| iaq value             | N/A           |   iaq/state           |   float string        |
-| iaqAccuracy config    | N/A           |   iaqAccuracy/config  |   Homeassistant json  |
-| iaqAccuracy value     | N/A           |   iaqAccuracy/state   |   float string        |
-| vocEquivalent config  | N/A           |   vocEquivalent/config  |   Homeassistant json  |
-| vocEquivalent value   | N/A           |   vocEquivalent/state   |   float string        |
-| pm25 config           | N/A           |   pm25/config         |   Homeassistant json  |
-| pm25 value            | N/A           |   pm25/state          |   float string        |
-| wifi rssi config      | N/A           |   pm25/config         |   Homeassistant json  |
-| wifi rssi value       | N/A           |   pm25/state          |   float string        |
+| Topic                       |   Commande         |  Status               | Format                |
+|-----------------------------|:------------------:|:---------------------:|:---------------------:|
+| Mode config                 |  N/A               |   mode/config         |   Homeassistant json  |
+| Mode Off,Auto,Manual,Night  | mode/cmd_t         |   mode/stat_t         |   'Automatic'/'Off'/'Night'/'Manual'   |
+| LedStrip config             |  N/A               |   ledStrip/config     |   Homeassistant json  |
+| LedStrip ON/OFF             | ledStrip/cmd_t     |   ledStrip/stat_t    |   'ON'/'OFF'          |
+| LedStrip brightness         | ledStrip/bri_cmd_t |   ledStrip/bri_stat_t |   '0' <> '100'        |
+| LedStrip color              | ledStrip/rgb_cmd_t |   ledStrip/rgb_stat_t |   r,g,b(decimal) or #RRGGBB(hexa)|
+| Motor config                |  N/A               |   motor/config        |   Homeassistant json  |
+| Motor ON/OFF                | motor/cmd_t        |   motor/stat_t        |   'ON'/'OFF'          |
+| Motor speed                 | motor/pct_cmd_t    |   motor/pct_stat_t    |   '0' <> '100'        |
+| temperature config          | N/A                |   temperature/config  |   Homeassistant json  |
+| temperature value           | N/A                |   temperature/stat_t  |   float string        |
+| humidity config             | N/A                |   humidity/config     |   Homeassistant json  |
+| humidity value              | N/A                |   humidity/stat_t     |   float string        |
+| pressure config             | N/A                |   pressure/config     |   Homeassistant json  |
+| pressure value              | N/A                |   pressure/stat_t     |   float string        |
+| co2_equivalent config       | N/A                |   co2_equivalent/config  |   Homeassistant json  |
+| co2_equivalent value        | N/A                |   co2_equivalent/stat_t   |   float string       |
+| iaq config                  | N/A                |   iaq/config          |   Homeassistant json  |
+| iaq value                   | N/A                |   iaq/stat_t          |   float string        |
+| iaqAccuracy config          | N/A                |   iaqAccuracy/config  |   Homeassistant json  |
+| iaqAccuracy value           | N/A                |   iaqAccuracy/stat_t  |   float string        |
+| vocEquivalent config        | N/A                |   vocEquivalent/config  |   Homeassistant json  |
+| vocEquivalent value         | N/A                |   vocEquivalent/stat_t  |   float string        |
+| pm25 config                 | N/A                |   pm25/config         |   Homeassistant json  |
+| pm25 value                  | N/A                |   pm25/stat_t         |   float string        |
+| wifi rssi config            | N/A                |   wrssi/config        |   Homeassistant json  |
+| wifi rssi value             | N/A                |   wrssi/stat_t        |   float string        |
 
 ## Homeassistant
 Le soft va fournir toutes les configuration nécéssaire a homeassistant (icone, unité, nom, plage d'ajustement).
