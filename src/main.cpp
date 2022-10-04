@@ -69,13 +69,14 @@ void onManagerLedColorChanged(uint8_t red, uint8_t green, uint8_t blue)
     RGBColor color = RGBColor(red, green, blue);
     if (leds.getCurrentColorRGB() != color)
     {
+        const uint8_t brigtness = (red == 0 && green == 0 && blue == 0) ? 0 : 64;
         Serial.println("Led Strip Color Changed " + color.toString());
-        ledStrip.set(64, color.red, color.green, color.blue);
+        ledStrip.set(brigtness, color.red, color.green, color.blue);
 
         // Update mqtt state
-        leds.setBrightness(64);
+        leds.setBrightness(brigtness);
         leds.setColorRGB(color);
-        leds.setState(true);
+        leds.setState(brigtness != 0);
     }
 }
 
