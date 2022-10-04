@@ -24,10 +24,10 @@ HADevice   device;
 HAMqtt     mqtt(espClient, device);
 // See https://www.home-assistant.io/integrations/#search/mqtt
 // See https://www.home-assistant.io/integrations/sensor/#device-class
-// HASwitch led("led", false); // "led" is unique ID of the switch. You should define your own ID.
-HALight  leds("ledStrip");                             // Is always automatic
+
+HALight  leds("ledStrip", HALight::BrightnessFeature | HALight::ColorRGBFeature);
 HAFan    purifierMotor("motor", HAFan::SpeedsFeature); // AirPurifier Motor
-HASwitch autoMode("AutoMode", true);                   // Represent the mode of the purifier (Automatic/manual)
+HASwitch autoMode("AutoMode");                         // Represent the mode of the purifier (Automatic/manual)
 HASensor temp("temperature");
 HASensor humidity("humidity");
 HASensor pressure("pressure");
@@ -46,7 +46,7 @@ HASensor wifiRSSI("wrssi");
 void onManagerMotorSpeedChanged(uint8_t motorSpeedPercent)
 {
     // Speed really changes
-    if (purifierMotor.getSpeed() != motorSpeedPercent)
+    if (purifierMotor.getCurrentSpeed() != motorSpeedPercent)
     {
         Serial.println("Fan speed Changed " + String(motorSpeedPercent));
 
@@ -67,14 +67,15 @@ void onManagerMotorSpeedChanged(uint8_t motorSpeedPercent)
 void onManagerLedColorChanged(uint8_t red, uint8_t green, uint8_t blue)
 {
     // Color really changes
-    if (leds.getRed() != red || leds.getGreen() != green || leds.getBlue() != blue)
+    RGBColor color = RGBColor(red, green, blue);
+    if (leds.getCurrentColorRGB() != color)
     {
-        Serial.println("Led Strip Color Changed " + String(red) + ", " + String(green) + ", " + String(blue));
-        ledStrip.set(64, red, green, blue);
+        Serial.println("Led Strip Color Changed " + color.toString());
+        ledStrip.set(64, color.red, color.green, color.blue);
 
         // Update mqtt state
         leds.setBrightness(64);
-        leds.setColor(red, green, blue);
+        leds.setColorRGB(color);
         leds.setState(true);
     }
 }
@@ -164,30 +165,29 @@ void onAutoModeChanged(bool state, HASwitch* s)
     airManager.setAutoMode(state);
 }
 
-void onPurifierMotorSpeedChanged(uint16_t speed)
+void onPurifierMotorSpeedChanged(uint8_t speed, HAFan* sender)
 {
     Serial.println("Fan speed received " + String(speed));
 
-    if (autoMode.getState())
+    if (autoMode.getCurrentState())
     {
         // Auto mode disabled
         // autoMode.setState(false); //FIXME: in the lib ????
         // airManager.setAutoMode(false);  //FIXME: in the lib ????
     }
 
-    // Saturation
-    if (speed > 100) speed = 100;
-
     uint16_t potPos = ((speed * 64) / 100);
     // Assign pot value according to speed
     pot.setTap(potPos);
+
+    sender->setSpeed(speed);
 }
 
-void onPurifierMotorStateChanged(bool state)
+void onPurifierMotorStateChanged(bool state, HAFan* sender)
 {
     Serial.println("Fan state received " + String(state));
 
-    if (autoMode.getState())
+    if (autoMode.getCurrentState())
     {
         // Auto mode disabled
         // autoMode.setState(false); //FIXME: in the lib ????
@@ -195,32 +195,37 @@ void onPurifierMotorStateChanged(bool state)
     }
 
     // send instant feedback
-    purifierMotor.setState(state);
+    sender->setState(state);
 
     // Set relay on/off
     digitalWrite(PINS_REPLAY_1, state);
     digitalWrite(PINS_REPLAY_2, state);
 }
 
-void onLedBrightnessChanged(uint8_t brightness)
+void onLedBrightnessChanged(uint8_t brightness, HALight* sender)
 {
     Serial.println("Led Strip Brightness Received " + String(brightness));
     ledStrip.setBrightness(brightness);
+
+    sender->setBrightness(brightness);
 }
 
-void onLedColorChanged(uint8_t red, uint8_t green, uint8_t blue)
+void onLedColorChanged(const RGBColor& color, HALight* sender)
 {
-    Serial.println("Led Strip Color Received " + String(red) + ", " + String(green) + ", " + String(blue));
-    ledStrip.setColor(red, green, blue);
+    Serial.println("Led Strip Color Received " + color.toString());
+    ledStrip.setColor(color.red, color.green, color.blue);
+
+    // Send feedback
+    sender->setColorRGB(color);
 }
 
-void onLedStateChanged(bool state)
+void onLedStateChanged(bool state, HALight* sender)
 {
     Serial.println("Led Strip State Received " + String(state));
     ledStrip.setState(state);
 
     // Send feedback
-    leds.setState(state);
+    sender->setState(state);
 }
 
 ////////////////////////// WIFI ////////////////////////
@@ -375,23 +380,23 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     device.setName("air-manager");
     device.setManufacturer("Tank86 electronics");
     device.setModel("Air purifier station");
-    device.setSoftwareVersion("1.0.1");
+    device.setSoftwareVersion("1.1.0");
 
     autoMode.setIcon("mdi:refresh-auto");
     autoMode.setName("Automatic mode");
-    autoMode.onStateChanged(onAutoModeChanged);
+    autoMode.onCommand(onAutoModeChanged);
 
     // purifierMotor.setRetain(true);
-    purifierMotor.onSpeedChanged(onPurifierMotorSpeedChanged);
-    purifierMotor.onStateChanged(onPurifierMotorStateChanged);
+    purifierMotor.onSpeedCommand(onPurifierMotorSpeedChanged);
+    purifierMotor.onStateCommand(onPurifierMotorStateChanged);
     purifierMotor.setSpeedRangeMin(1);
     purifierMotor.setSpeedRangeMax(100);
     purifierMotor.setIcon("mdi:fan"); // mdi:air-purifier");
     purifierMotor.setName("AirPurifier speed");
 
-    leds.onStateChanged(onLedStateChanged);
-    leds.onBrightnessChanged(onLedBrightnessChanged);
-    leds.onColorChanged(onLedColorChanged);
+    leds.onStateCommand(onLedStateChanged);
+    leds.onBrightnessCommand(onLedBrightnessChanged);
+    leds.onColorRGBCommand(onLedColorChanged);
     leds.setIcon("mdi:lightbulb");
     leds.setName("AirPurifier strip");
 
@@ -440,6 +445,9 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
 
     // Connect to MQTT server
     mqtt.begin(address, port, user, pwd);
+
+    //default auto mode is active
+    autoMode.setState(true);
 }
 
 void loopMQTT()
