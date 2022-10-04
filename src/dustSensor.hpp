@@ -24,6 +24,8 @@ class DustSensor
     uint32_t readADC_Cal(uint16_t ADC_Raw);
     uint16_t Filter(uint16_t m);
 
+    void printDustAirQuality() const;
+
     float                dust_density{nanf("")};
     dustAcquiredCallback acquiredCallback{nullptr};
 

@@ -390,7 +390,7 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     device.enableLastWill();
 
     purifierMode.setIcon("mdi:refresh-auto");
-    purifierMode.setName("Purifier mode");
+    purifierMode.setName("AirPurifier mode");
     purifierMode.setOptions(airManager.getModeListStr());
     purifierMode.onCommand(onPurifierModeChanged);
 

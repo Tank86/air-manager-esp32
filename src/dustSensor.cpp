@@ -109,12 +109,37 @@ void DustSensor::loop()
         else dust_density = 0;
 #else
         // See http://www.howmuchsnow.com/arduino/airquality/
-        //dust_density = ((0.172 * (voltage / 1000.0)) - 0.0999) * 1000.0;
+        // dust_density = ((0.172 * (voltage / 1000.0)) - 0.0999) * 1000.0;
         dust_density = ((0.172 * (voltage / 1000.0)) - 0.085) * 1000.0;
         if (dust_density < 0) dust_density = 0;
 #endif
 
+        printDustAirQuality();
+
+        // Send dust density
+        if ((acquiredCallback != nullptr) && (!isnan(dust_density))) acquiredCallback(dust_density);
+    }
+}
+
+void DustSensor::printDustAirQuality() const
+{
 #if true
+    static uint32_t lastSent = millis();
+
+    //  PM2.5 density  |  Air quality   |  Air quality   | Air quality
+    // value(μg/m3)    |  index  (AQi)  |     level      |  evaluation
+    //     0-35        |      0-50      |        I       |  Excellent
+    //     35-75       |      51-100    |       II       |  Average
+    //     75-115      |      101-150   |      III       |  Light pollution
+    //     115-150     |      151-200   |       IV       |  Moderate pollution
+    //     150-250     |      201-300   |        V       |  Heavy pollution
+    //     250-500     |      ≥300 	    |       VI       |  Serious pullution
+
+    //print dust status only every 10 seconds
+    uint32_t now = millis();
+    if ((now - lastSent) > (10 * 1000))
+    {
+        lastSent = now;
         Serial.print("The current dust concentration is: ");
         Serial.print(dust_density);
         Serial.print(" ug/m3 ");
@@ -125,17 +150,6 @@ void DustSensor::loop()
         else if (dust_density <= 300) Serial.print("- Air quality: Heavy pollution");
         else if (dust_density > 300) Serial.print("- Air quality: Serious pollution");
         Serial.println("");
-#endif
-        //  PM2.5 density  |  Air quality   |  Air quality   | Air quality
-        // value(μg/m3)    |  index  (AQi)  |     level      |  evaluation
-        //     0-35        |      0-50      |        I       |  Excellent
-        //     35-75       |      51-100    |       II       |  Average
-        //     75-115      |      101-150   |      III       |  Light pollution
-        //     115-150     |      151-200   |       IV       |  Moderate pollution
-        //     150-250     |      201-300   |        V       |  Heavy pollution
-        //     250-500     |      ≥300 	    |       VI       |  Serious pullution
-
-        // Send dust density
-        if ((acquiredCallback != nullptr) && (!isnan(dust_density))) acquiredCallback(dust_density);
     }
+#endif
 }
