@@ -64,11 +64,11 @@ Le mode automatique est désactivable via un topic MQTT.
 | Mode Off,Auto,Manual,Night  | mode/cmd_t         |   mode/stat_t         |   'Automatic'/'Off'/'Night'/'Manual'   |
 | LedStrip config             |  N/A               |   ledStrip/config     |   Homeassistant json  |
 | LedStrip ON/OFF             | ledStrip/cmd_t     |   ledStrip/stat_t    |   'ON'/'OFF'          |
-| LedStrip brightness         | ledStrip/bri_cmd_t |   ledStrip/bri_stat_t |   '0' <> '100'        |
+| LedStrip brightness         | ledStrip/bri_cmd_t |   ledStrip/bri_stat_t |   '1' <> '255'        |
 | LedStrip color              | ledStrip/rgb_cmd_t |   ledStrip/rgb_stat_t |   r,g,b(decimal) or #RRGGBB(hexa)|
 | Motor config                |  N/A               |   motor/config        |   Homeassistant json  |
 | Motor ON/OFF                | motor/cmd_t        |   motor/stat_t        |   'ON'/'OFF'          |
-| Motor speed                 | motor/pct_cmd_t    |   motor/pct_stat_t    |   '0' <> '100'        |
+| Motor speed                 | motor/pct_cmd_t    |   motor/pct_stat_t    |   '1' <> '100'        |
 | temperature config          | N/A                |   temperature/config  |   Homeassistant json  |
 | temperature value           | N/A                |   temperature/stat_t  |   float string        |
 | humidity config             | N/A                |   humidity/config     |   Homeassistant json  |

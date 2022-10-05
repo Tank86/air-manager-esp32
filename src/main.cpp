@@ -21,21 +21,21 @@ AirSensor          sensorAir;
 #ifdef HOMEASSISTANT
 WiFiClient espClient;
 HADevice   device;
-HAMqtt     mqtt(espClient, device, 15); //Max 15 sensors
+HAMqtt     mqtt(espClient, device, 15); // Max 15 sensors
 // See https://www.home-assistant.io/integrations/#search/mqtt
 // See https://www.home-assistant.io/integrations/sensor/#device-class
-HALight  leds("ledStrip", HALight::BrightnessFeature | HALight::ColorRGBFeature);
-HAFan    purifierMotor("motor", HAFan::SpeedsFeature); // AirPurifier Motor
-HASelect purifierMode("mode"); // Represent the mode of the purifier (Off/Manual/Automatic/NightMode)
-HASensor wifiRSSI("wrssi");
-HASensor dustPM25("pm25");
-HASensor temp("temperature");
-HASensor humidity("humidity");
-HASensor pressure("pressure");
-HASensor iaqAccuracy("iaqAccuracy");     // 0: stabilisation, 1, low, 2, medium, 3, high
-HASensor iaq("iaq");                     // quality air index
-HASensor co2("co2_equivalent");
-HASensor vocEquivalent("vocEquivalent"); // breath voc equivalent (ppm)
+HALight        leds("ledStrip", HALight::BrightnessFeature | HALight::ColorRGBFeature);
+HAFan          purifierMotor("motor", HAFan::SpeedsFeature); // AirPurifier Motor
+HASelect       purifierMode("mode");                         // Represent the mode of the purifier (Off/Manual/Automatic/NightMode)
+HASensorNumber wifiRSSI("wrssi", HABaseDeviceType::PrecisionP0);
+HASensorNumber dustPM25("pm25", HABaseDeviceType::PrecisionP0);
+HASensorNumber temp("temperature", HABaseDeviceType::PrecisionP1);
+HASensorNumber humidity("humidity", HABaseDeviceType::PrecisionP0);
+HASensorNumber pressure("pressure", HABaseDeviceType::PrecisionP1);
+HASensorNumber iaqAccuracy("iaqAccuracy", HABaseDeviceType::PrecisionP0); // 0: stabilisation, 1, low, 2, medium, 3, high
+HASensorNumber iaq("iaq", HABaseDeviceType::PrecisionP0);                 // quality air index
+HASensorNumber co2("co2_equivalent", HABaseDeviceType::PrecisionP0);
+HASensorNumber vocEquivalent("vocEquivalent", HABaseDeviceType::PrecisionP2); // breath voc equivalent (ppm)
 #else
 // TODO some basic mqtt objects
 #endif
@@ -69,14 +69,14 @@ void onManagerLedColorChanged(uint8_t red, uint8_t green, uint8_t blue)
     RGBColor color = RGBColor(red, green, blue);
     if (leds.getCurrentColorRGB() != color)
     {
-        const uint8_t brigtness = (red == 0 && green == 0 && blue == 0) ? 0 : 64;
+        const uint8_t brightness = (red == 0 && green == 0 && blue == 0) ? 0 : 64;
         Serial.println("Led Strip Color Changed " + color.toString());
-        ledStrip.set(brigtness, color.red, color.green, color.blue);
+        ledStrip.set(brightness, color.red, color.green, color.blue);
 
         // Update mqtt state
-        leds.setBrightness(brigtness);
+        leds.setBrightness(brightness);
         leds.setColorRGB(color);
-        leds.setState(brigtness != 0);
+        leds.setState(brightness != 0);
     }
 }
 
@@ -100,20 +100,20 @@ void onBMEDataChanged(const bme68xData data, const bsecOutputs outputs, Bsec2 bs
                 Serial.println("\tiaq accuracy = " + String((int)output.accuracy));
                 iaqAccuracy.setValue(output.accuracy);
                 if (output.accuracy >= 1) // at least accuray low
-                    iaq.setValue(output.signal, 0);
+                    iaq.setValue(output.signal);
                 break;
             case BSEC_OUTPUT_CO2_EQUIVALENT:
                 Serial.println("\tc02 equivalent = " + String(output.signal));
-                if (output.accuracy != 0) co2.setValue(output.signal, 0);
+                if (output.accuracy != 0) co2.setValue(output.signal);
                 break;
             case BSEC_OUTPUT_BREATH_VOC_EQUIVALENT:
                 Serial.println("\tbreath voc equivalent = " + String(output.signal));
-                if (output.accuracy != 0) vocEquivalent.setValue(output.signal, 2);
+                if (output.accuracy != 0) vocEquivalent.setValue(output.signal);
                 break;
             case BSEC_OUTPUT_RAW_TEMPERATURE: Serial.println("\ttemperature = " + String(output.signal)); break;
             case BSEC_OUTPUT_RAW_PRESSURE:
                 Serial.println("\tpressure = " + String(output.signal));
-                pressure.setValue(output.signal / 100.0f, 1); // convert to mbar
+                pressure.setValue(output.signal / 100.0f); // convert to mbar
                 break;
             case BSEC_OUTPUT_RAW_HUMIDITY: Serial.println("\thumidity = " + String(output.signal)); break;
             case BSEC_OUTPUT_RAW_GAS: Serial.println("\tgas resistance = " + String(output.signal)); break;
@@ -121,11 +121,11 @@ void onBMEDataChanged(const bme68xData data, const bsecOutputs outputs, Bsec2 bs
             case BSEC_OUTPUT_RUN_IN_STATUS: Serial.println("\trun in status = " + String(output.signal)); break;
             case BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE:
                 Serial.println("\ttemperature comp = " + String(output.signal));
-                temp.setValue(output.signal, 1);
+                temp.setValue(output.signal);
                 break;
             case BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY:
                 Serial.println("\thumidity comp = " + String(output.signal));
-                humidity.setValue(output.signal, 0);
+                humidity.setValue(output.signal);
                 break;
             case BSEC_OUTPUT_COMPENSATED_GAS: Serial.println("\tcompensated gas = " + String(output.signal)); break;
             case BSEC_OUTPUT_GAS_PERCENTAGE: Serial.println("\tgas percentage = " + String(output.signal)); break;
