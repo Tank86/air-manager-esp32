@@ -5,11 +5,14 @@
 #include "purifierManager.hpp"
 #include <Arduino.h>
 #include <ArduinoHA.h>
+#include <AsyncElegantOTA.h>
 #include <EEPROM.h>
 #include <MCP40xx.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
 #include <Wire.h>
+
+AsyncWebServer server(80);
 
 CredentialsManager credentials;
 PurifierManager    airManager;
@@ -53,6 +56,10 @@ void onManagerMotorSpeedChanged(uint8_t motorSpeedPercent)
         if (motorSpeedPercent > 100) motorSpeedPercent = 100;
 
         uint16_t potPos = ((motorSpeedPercent * 64) / 100);
+
+        // Set Motor relay on/off
+        digitalWrite(PINS_REPLAY_1, motorSpeedPercent != 0);
+        digitalWrite(PINS_REPLAY_2, motorSpeedPercent != 0);
 
         // Assign pot value according to speed
         pot.setTap(potPos);
@@ -385,7 +392,7 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     device.setName("Air Manager");
     device.setModel("Air Tower 1");
     device.setManufacturer("Tank86 electronics");
-    device.setSoftwareVersion("2.0.0");
+    device.setSoftwareVersion("2.0.1");
 
     // Use last will message
     device.enableLastWill();
@@ -453,6 +460,11 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
 
     // Connect to MQTT server
     mqtt.begin(address, port, user, pwd);
+
+    // Start AsyncElegantOTA
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) { request->send(200, "text/plain", "Hi, go to /update to see the page"); });
+    AsyncElegantOTA.begin(&server);
+    server.begin();
 
     // set mode accordingly to the manager
     purifierMode.setState(airManager.getCurrentMode(), true);
