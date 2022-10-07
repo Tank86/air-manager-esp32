@@ -57,11 +57,12 @@ Le mode automatique est désactivable via un topic MQTT.
  - Motor       => homeassistant/fan/'MACADDRESS'/
  - AutoMode    => homeassistant/select/'MACADDRESS'/
  - All sensors => homeassistant/sensor/'MACADDRESS'/
+ - data/command => aha/'MACADDRESS'/
 
 | Topic                       |   Commande         |  Status               | Format                |
 |-----------------------------|:------------------:|:---------------------:|:---------------------:|
 | Mode config                 |  N/A               |   mode/config         |   Homeassistant json  |
-| Mode Off,Auto,Manual,Night  | mode/cmd_t         |   mode/stat_t         |   'Automatic'/'Off'/'Night'/'Manual'   |
+| Mode value                  | mode/cmd_t         |   mode/stat_t         |   'Automatic' / 'Off' / 'Night' / 'Manual' / 'AutoLed'   |
 | LedStrip config             |  N/A               |   ledStrip/config     |   Homeassistant json  |
 | LedStrip ON/OFF             | ledStrip/cmd_t     |   ledStrip/stat_t    |   'ON'/'OFF'          |
 | LedStrip brightness         | ledStrip/bri_cmd_t |   ledStrip/bri_stat_t |   '1' <> '255'        |
