@@ -17,7 +17,7 @@ class PurifierManager
         Night     = 3,
         AutoLed   = 4,
     };
-    bool        isModeValid(Modes newMode) { return ((newMode >= Modes::Off) && (newMode <= Modes::Night)); }
+    bool        isModeValid(Modes newMode) { return ((newMode >= Modes::Off) && (newMode <= Modes::AutoLed)); }
     bool        isModeValid(int8_t newModeIdx) { return isModeValid((Modes)(newModeIdx)); }
     const char* getModeListStr() const { return "Off;Manual;Automatic;Night;AutoLed"; }
     const char* getModeStr() const
