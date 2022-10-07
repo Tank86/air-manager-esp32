@@ -175,7 +175,7 @@ bool AirSensor::saveState(Bsec2 bsec)
 
 void AirSensor::errLeds(void)
 {
-#if defined(ARDUINO_ARCH_ESP32_C3)
+#if defined(CONFIG_IDF_TARGET_ESP32C3)
     // Lolin ESP32_C3 has builtin RGB led
     // TODO, manage RGB LED
 #else

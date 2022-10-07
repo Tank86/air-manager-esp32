@@ -488,7 +488,7 @@ void loopMQTT()
 ////////// Purifier Code /////////////
 void initPurifierPins()
 {
-#if defined(ARDUINO_ARCH_ESP32_C3)
+#if defined(CONFIG_IDF_TARGET_ESP32C3)
     // Lolin ESP32_C3 has builtin RGB led
     // TODO Init RGB
     pinMode(PINS_STATUS_LED, OUTPUT);
@@ -517,6 +517,9 @@ void setup()
         Serial.println(i);
         delay(1000);
     }
+
+    //No need to run at 240MHz (80 is more than enought for the application)
+    setCpuFrequencyMhz(80);
 
     // Start 1024 bytes of EEPROM
     EEPROM.begin(1024); // Need BSEC_MAX_STATE_BLOB_SIZE(197 bytes) for BME680 +  512 bytes for Wifi credentials
