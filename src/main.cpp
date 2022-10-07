@@ -12,7 +12,9 @@
 #include <WiFi.h>
 #include <Wire.h>
 
-AsyncWebServer server(80);
+AsyncWebServer    server(80);
+static const char OTAUser[] = "espAirSensor";
+static const char OTAPwd[]  = "Tank86";
 
 CredentialsManager credentials;
 PurifierManager    airManager;
@@ -185,7 +187,7 @@ void onPurifierMotorSpeedChanged(uint8_t speed, HAFan* sender)
     {
         // Auto mode disabled, but manual override => disable auto mode
         // airManager.setMode(PurifierManager::Modes::Manual);
-        // purifierMode.setState(airManager.getModeIndex()); //FIXME: in the lib ????
+        //purifierMode.setState(airManager.getModeIndex());
     }
 
     uint16_t potPos = ((speed * 64) / 100);
@@ -203,7 +205,7 @@ void onPurifierMotorStateChanged(bool state, HAFan* sender)
     {
         // Auto mode disabled, but manual override => disable auto mode
         // airManager.setMode(PurifierManager::Modes::Manual);
-        // purifierMode.setState(airManager.getModeIndex()); //FIXME: in the lib ????
+        // purifierMode.setState(airManager.getModeIndex());
     }
 
     // send instant feedback
@@ -461,13 +463,8 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     // Connect to MQTT server
     mqtt.begin(address, port, user, pwd);
 
-    // Start AsyncElegantOTA
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) { request->send(200, "text/plain", "Hi, go to /update to see the page"); });
-    AsyncElegantOTA.begin(&server);
-    server.begin();
-
     // set mode accordingly to the manager
-    purifierMode.setState(airManager.getCurrentMode(), true);
+    purifierMode.setCurrentState(airManager.getCurrentMode());
 }
 
 void loopMQTT()
@@ -552,6 +549,11 @@ void setup()
              credentials.getMqttUser()[0] == 0 ? nullptr : credentials.getMqttUser(),
              credentials.getMqttPwd()[0] == 0 ? nullptr : credentials.getMqttPwd());
 #endif
+
+    // Start AsyncElegantOTA
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) { request->send(200, "text/plain", "Hi, go to /update to see the page"); });
+    AsyncElegantOTA.begin(&server,OTAUser, OTAPwd );
+    server.begin();
 }
 
 void loop()

@@ -65,7 +65,8 @@ void PurifierManager::process()
     switch (currentMode)
     {
         case Modes::Off: processOff(); break;
-        case Modes::Automatic: processAuto(); break;
+        case Modes::Automatic: processAuto(true); break;
+        case Modes::AutoLed: processAuto(false); break;
         case Modes::Night: processNight(); break;
         default:
             // ManualMode or unsupported, do nothing
@@ -73,7 +74,7 @@ void PurifierManager::process()
     }
 }
 
-void PurifierManager::processAuto()
+void PurifierManager::processAuto(bool fullAuto)
 {
     // TODO : For the moment only very basic function (a linearity algorithm must be computed)
 
@@ -95,8 +96,12 @@ void PurifierManager::processAuto()
     //  - off/green if air quality is ok
     //  - linearily interporlated speed/color for each intermediate values
     //  - full/red  if quality is very bad
-    setMotorSpeed(max_level_percent);
     setLedColor(max_level, (255 - max_level), 0);
+
+    if (fullAuto)
+    {
+        setMotorSpeed(max_level_percent);
+    }
 }
 
 void PurifierManager::processNight()

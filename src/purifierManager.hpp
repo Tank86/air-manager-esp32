@@ -14,11 +14,12 @@ class PurifierManager
         Off       = 0,
         Manual    = 1,
         Automatic = 2,
-        Night     = 3
+        Night     = 3,
+        AutoLed   = 4,
     };
     bool        isModeValid(Modes newMode) { return ((newMode >= Modes::Off) && (newMode <= Modes::Night)); }
     bool        isModeValid(int8_t newModeIdx) { return isModeValid((Modes)(newModeIdx)); }
-    const char* getModeListStr() const { return "Off;Manual;Automatic;Night"; }
+    const char* getModeListStr() const { return "Off;Manual;Automatic;Night;AutoLed"; }
     const char* getModeStr() const
     {
         if (currentMode == Modes::Off) return "Off";
@@ -48,14 +49,14 @@ class PurifierManager
     changeMotorSpeedCBK setMotorSpeed{nullptr};
     changeLedColorCBK   setLedColor{nullptr};
 
-    Modes currentMode{Off};
+    Modes currentMode{Automatic};
 
     float sensor_dust{nanf("")};
     float sensor_gasvoc{nanf("")};
     float sensor_iaq{nanf("")};
 
     void  process();
-    void  processAuto();
+    void  processAuto(bool fullAuto);
     void  processOff();
     void  processNight();
     float interpolate(float val, float x0, float x1, float y0, float y1, bool saturate = true);
