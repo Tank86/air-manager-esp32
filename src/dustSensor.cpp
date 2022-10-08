@@ -36,7 +36,7 @@ uint16_t DustSensor::Filter(uint16_t m)
 uint32_t DustSensor::readADC_Cal(uint16_t ADC_Raw)
 {
     esp_adc_cal_characteristics_t adc_chars;
-#if defined(ARDUINO_ARCH_ESP32_S2)
+#if defined(CONFIG_IDF_TARGET_ESP32S2)
     esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_13, 1100, &adc_chars);
 #else
     esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
@@ -58,7 +58,7 @@ void DustSensor::init()
     // Configure adc
     adc_set_clk_div(1); // We want fastest possible measurement
     adc1_config_channel_atten(adcChannel, ADC_ATTEN_DB_11);
-#if defined(ARDUINO_ARCH_ESP32_S2)
+#if defined(CONFIG_IDF_TARGET_ESP32S2)
     adc1_config_width(ADC_WIDTH_BIT_13); // (13 bits is the HW resolution: 0-8191)
 #else
     adc1_config_width(ADC_WIDTH_BIT_12); // (12 bits is the HW resolution: 0-4095)

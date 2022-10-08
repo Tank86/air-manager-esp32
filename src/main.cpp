@@ -13,7 +13,7 @@
 #include <Wire.h>
 
 AsyncWebServer    server(80);
-static const char OTAUser[] = "espAirSensor";
+static const char OTAUser[] = "AirPurifierTower";
 static const char OTAPwd[]  = "Tank86";
 
 CredentialsManager credentials;
