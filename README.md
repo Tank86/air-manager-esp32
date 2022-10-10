@@ -105,9 +105,19 @@ Note: Pour avoir ces cartes customisées j'ai utilisées les custom cards
 
 Voir : [Fan Speed](doc/AirControlSpeedCard.yml)  [Led strip color](doc/AirControlColorCard.yml)  [Quality cards](doc/AirQualityCards.yml) 
 
+## Jeedom
+Le soft est construit avec une librarie HomeAssistant, cependant les topic MQTT sont accessible a tout autre soft domotique notament JEEDOM.
+
+Et ca ressemble a ca si vous utilisez le template suivant  => [Template](doc/JeedomTemplate_Air_Purificator.json)
+Note: Dans le template 
+
+<p align="center">
+ <img src="doc/Jeedom_Air_purificator.jpg" width="200"/>
+</p>
+
 ## TODO
 - Sauvegarder le mode auto dans l'eeprom
-- More Modes (mode fast, continious slow, ...)
+- Ajouter hysteresis pour l'activation du moteur (et eviter qu'il s'allume et s'eteigne trop rapidement)
 
 
 ## PCB:

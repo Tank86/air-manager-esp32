@@ -114,8 +114,8 @@ void PurifierManager::processNight()
 
     // Night mode
     // - color is off
-    // - fan speed is max 30%
-    if (max_level_percent > 30) max_level_percent = 30;
+    // - fan speed is max 20%
+    if (max_level_percent > 20) max_level_percent = 20;
 
     setMotorSpeed(max_level_percent);
     setLedColor(0, 0, 0);

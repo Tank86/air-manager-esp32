@@ -29,7 +29,7 @@ HADevice   device;
 HAMqtt     mqtt(espClient, device, 15); // Max 15 sensors
 // See https://www.home-assistant.io/integrations/#search/mqtt
 // See https://www.home-assistant.io/integrations/sensor/#device-class
-HALight        leds("ledStrip", HALight::BrightnessFeature | HALight::ColorRGBFeature);
+HALight        leds("ledStrip", HALight::BrightnessFeature | HALight::RGBFeature);
 HAFan          purifierMotor("motor", HAFan::SpeedsFeature); // AirPurifier Motor
 HASelect       purifierMode("mode");                         // Represent the mode of the purifier (Off/Manual/Automatic/NightMode)
 HASensorNumber wifiRSSI("wrssi", HABaseDeviceType::PrecisionP0);
@@ -75,8 +75,8 @@ void onManagerMotorSpeedChanged(uint8_t motorSpeedPercent)
 void onManagerLedColorChanged(uint8_t red, uint8_t green, uint8_t blue)
 {
     // Color really changes
-    RGBColor color = RGBColor(red, green, blue);
-    if (leds.getCurrentColorRGB() != color)
+    auto color = HALight::RGBColor(red, green, blue);
+    if (leds.getCurrentRGBColor() != color)
     {
         const uint8_t brightness = (red == 0 && green == 0 && blue == 0) ? 0 : 64;
         Serial.println("Led Strip Color Changed " + color.toString());
@@ -84,7 +84,7 @@ void onManagerLedColorChanged(uint8_t red, uint8_t green, uint8_t blue)
 
         // Update mqtt state
         leds.setBrightness(brightness);
-        leds.setColorRGB(color);
+        leds.setRGBColor(color);
         leds.setState(brightness != 0);
     }
 }
@@ -109,20 +109,20 @@ void onBMEDataChanged(const bme68xData data, const bsecOutputs outputs, Bsec2 bs
                 Serial.println("\tiaq accuracy = " + String((int)output.accuracy));
                 iaqAccuracy.setValue(output.accuracy);
                 if (output.accuracy >= 1) // at least accuray low
-                    iaq.setValue(output.signal);
+                    iaq.setValueFloat(output.signal);
                 break;
             case BSEC_OUTPUT_CO2_EQUIVALENT:
                 Serial.println("\tc02 equivalent = " + String(output.signal));
-                if (output.accuracy != 0) co2.setValue(output.signal);
+                if (output.accuracy != 0) co2.setValueFloat(output.signal);
                 break;
             case BSEC_OUTPUT_BREATH_VOC_EQUIVALENT:
                 Serial.println("\tbreath voc equivalent = " + String(output.signal));
-                if (output.accuracy != 0) vocEquivalent.setValue(output.signal);
+                if (output.accuracy != 0) vocEquivalent.setValueFloat(output.signal);
                 break;
             case BSEC_OUTPUT_RAW_TEMPERATURE: Serial.println("\ttemperature = " + String(output.signal)); break;
             case BSEC_OUTPUT_RAW_PRESSURE:
                 Serial.println("\tpressure = " + String(output.signal));
-                pressure.setValue(output.signal / 100.0f); // convert to mbar
+                pressure.setValueFloat(output.signal / 100.0f); // convert to mbar
                 break;
             case BSEC_OUTPUT_RAW_HUMIDITY: Serial.println("\thumidity = " + String(output.signal)); break;
             case BSEC_OUTPUT_RAW_GAS: Serial.println("\tgas resistance = " + String(output.signal)); break;
@@ -130,11 +130,11 @@ void onBMEDataChanged(const bme68xData data, const bsecOutputs outputs, Bsec2 bs
             case BSEC_OUTPUT_RUN_IN_STATUS: Serial.println("\trun in status = " + String(output.signal)); break;
             case BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE:
                 Serial.println("\ttemperature comp = " + String(output.signal));
-                temp.setValue(output.signal);
+                temp.setValueFloat(output.signal);
                 break;
             case BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY:
                 Serial.println("\thumidity comp = " + String(output.signal));
-                humidity.setValue(output.signal);
+                humidity.setValueFloat(output.signal);
                 break;
             case BSEC_OUTPUT_COMPENSATED_GAS: Serial.println("\tcompensated gas = " + String(output.signal)); break;
             case BSEC_OUTPUT_GAS_PERCENTAGE: Serial.println("\tgas percentage = " + String(output.signal)); break;
@@ -161,7 +161,7 @@ void onDustChanged(float dust)
     if ((millis() - lastSendTimer) > (5 * 60 * 1000))
     {
         lastSendTimer = millis();
-        dustPM25.setValue(dust, 0);
+        dustPM25.setValueFloat(dust);
     }
 }
 
@@ -179,7 +179,7 @@ void onPurifierModeChanged(int8_t index, HASelect* sender)
     }
 }
 
-void onPurifierMotorSpeedChanged(uint8_t speed, HAFan* sender)
+void onPurifierMotorSpeedChanged(uint16_t speed, HAFan* sender)
 {
     Serial.println("Fan speed received " + String(speed));
 
@@ -224,13 +224,13 @@ void onLedBrightnessChanged(uint8_t brightness, HALight* sender)
     sender->setBrightness(brightness);
 }
 
-void onLedColorChanged(const RGBColor& color, HALight* sender)
+void onLedColorChanged(const HALight::RGBColor& color, HALight* sender)
 {
     Serial.println("Led Strip Color Received " + color.toString());
     ledStrip.setColor(color.red, color.green, color.blue);
 
     // Send feedback
-    sender->setColorRGB(color);
+    sender->setRGBColor(color);
 }
 
 void onLedStateChanged(bool state, HALight* sender)
@@ -394,7 +394,7 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     device.setName("Air Manager");
     device.setModel("Air Tower 1");
     device.setManufacturer("Tank86 electronics");
-    device.setSoftwareVersion("2.0.1");
+    device.setSoftwareVersion("2.0.2");
 
     // Use last will message
     device.enableLastWill();
@@ -406,14 +406,14 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
 
     purifierMotor.onSpeedCommand(onPurifierMotorSpeedChanged);
     purifierMotor.onStateCommand(onPurifierMotorStateChanged);
-    purifierMotor.setSpeedRangeMin(1);
-    purifierMotor.setSpeedRangeMax(100);
+    purifierMotor.setSpeedRangeMin(0);      //In percent
+    purifierMotor.setSpeedRangeMax(100);    //In percent
     purifierMotor.setIcon("mdi:fan"); // mdi:air-purifier");
     purifierMotor.setName("AirPurifier speed");
 
     leds.onStateCommand(onLedStateChanged);
     leds.onBrightnessCommand(onLedBrightnessChanged);
-    leds.onColorRGBCommand(onLedColorChanged);
+    leds.onRGBColorCommand(onLedColorChanged);
     leds.setIcon("mdi:lightbulb");
     leds.setName("AirPurifier strip");
 
