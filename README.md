@@ -106,10 +106,9 @@ Note: Pour avoir ces cartes customisées j'ai utilisées les custom cards
 Voir : [Fan Speed](doc/AirControlSpeedCard.yml)  [Led strip color](doc/AirControlColorCard.yml)  [Quality cards](doc/AirQualityCards.yml) 
 
 ## Jeedom
-Le soft est construit avec une librarie HomeAssistant, cependant les topic MQTT sont accessible a tout autre soft domotique notament JEEDOM.
+Le soft est construit avec une librarie HomeAssistant, cependant les topics MQTT sont accessibles à tout autre soft domotique notament JEEDOM.
 
 Et ca ressemble a ca si vous utilisez le template suivant  => [Template](doc/JeedomTemplate_Air_Purificator.json)
-Note: Dans le template 
 
 <p align="center">
  <img src="doc/Jeedom_Air_purificator.jpg" width="200"/>

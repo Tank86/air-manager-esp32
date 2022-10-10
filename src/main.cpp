@@ -263,6 +263,7 @@ void initWIFI(const char* ssid, const char* password)
 
     // Connect to wifi
     Serial.println("Connecting to " + String(ssid));
+    WiFi.persistent(false);
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED)
     {

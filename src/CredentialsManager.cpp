@@ -437,7 +437,8 @@ bool CredentialsManager::isWifiReacheable()
     if (!credentials.Wifi_SSID[0] == 0)
     {
         // Try Connect to wifi
-        Serial.println("Trying conenction to  " + String(credentials.Wifi_SSID));
+        Serial.println("Trying to connect to  " + String(credentials.Wifi_SSID));
+        WiFi.persistent(false);
         WiFi.begin(credentials.Wifi_SSID, credentials.Wifi_Pwd);
 
         bool connected = false;
