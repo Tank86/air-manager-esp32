@@ -1,13 +1,13 @@
 #include "CredentialsManager.hpp"
 #include "airSensor.hpp"
 #include "dustSensor.hpp"
+#include "fanControl.hpp"
 #include "ledStrip.hpp"
 #include "purifierManager.hpp"
 #include <Arduino.h>
 #include <ArduinoHA.h>
 #include <AsyncElegantOTA.h>
 #include <EEPROM.h>
-#include <MCP40xx.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
 #include <Wire.h>
@@ -18,8 +18,8 @@ static const char OTAPwd[]  = "Tank86";
 
 CredentialsManager credentials;
 PurifierManager    airManager;
-MCP40xx            pot{PINS_POT_CS, PINS_POT_UD};
 LedStrip           ledStrip;
+FanControl         fanControl;
 DustSensor         sensorDust{PINS_DUSTSENSOR_ILED, PINS_DUSTSENSOR_VOUT};
 AirSensor          sensorAir;
 
@@ -54,17 +54,7 @@ void onManagerMotorSpeedChanged(uint8_t motorSpeedPercent)
     {
         Serial.println("Fan speed Changed " + String(motorSpeedPercent));
 
-        // Saturation
-        if (motorSpeedPercent > 100) motorSpeedPercent = 100;
-
-        uint16_t potPos = ((motorSpeedPercent * 64) / 100);
-
-        // Set Motor relay on/off
-        digitalWrite(PINS_REPLAY_1, motorSpeedPercent != 0);
-        digitalWrite(PINS_REPLAY_2, motorSpeedPercent != 0);
-
-        // Assign pot value according to speed
-        pot.setTap(potPos);
+        fanControl.setSpeed(motorSpeedPercent);
 
         // Update mqtt state
         purifierMotor.setState(motorSpeedPercent != 0);
@@ -187,14 +177,13 @@ void onPurifierMotorSpeedChanged(uint16_t speed, HAFan* sender)
     {
         // Auto mode disabled, but manual override => disable auto mode
         // airManager.setMode(PurifierManager::Modes::Manual);
-        //purifierMode.setState(airManager.getModeIndex());
+        // purifierMode.setState(airManager.getModeIndex());
     }
 
-    uint16_t potPos = ((speed * 64) / 100);
-    // Assign pot value according to speed
-    pot.setTap(potPos);
+    fanControl.setSpeed((uint8_t)speed);
 
-    sender->setSpeed(speed);
+    sender->setState(fanControl.getCurrentSpeed() != 0);
+    sender->setSpeed(fanControl.getTargetSpeed());
 }
 
 void onPurifierMotorStateChanged(bool state, HAFan* sender)
@@ -208,12 +197,11 @@ void onPurifierMotorStateChanged(bool state, HAFan* sender)
         // purifierMode.setState(airManager.getModeIndex());
     }
 
+    // Set fanControl
+    state ? fanControl.on() : fanControl.off();
+
     // send instant feedback
     sender->setState(state);
-
-    // Set relay on/off
-    digitalWrite(PINS_REPLAY_1, state);
-    digitalWrite(PINS_REPLAY_2, state);
 }
 
 void onLedBrightnessChanged(uint8_t brightness, HALight* sender)
@@ -395,7 +383,7 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     device.setName("Air Manager");
     device.setModel("Air Tower 1");
     device.setManufacturer("Tank86 electronics");
-    device.setSoftwareVersion("2.0.2");
+    device.setSoftwareVersion("2.0.3");
 
     // Use last will message
     device.enableLastWill();
@@ -407,9 +395,9 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
 
     purifierMotor.onSpeedCommand(onPurifierMotorSpeedChanged);
     purifierMotor.onStateCommand(onPurifierMotorStateChanged);
-    purifierMotor.setSpeedRangeMin(0);      //In percent
-    purifierMotor.setSpeedRangeMax(100);    //In percent
-    purifierMotor.setIcon("mdi:fan"); // mdi:air-purifier");
+    purifierMotor.setSpeedRangeMin(1);   // In percent
+    purifierMotor.setSpeedRangeMax(100); // In percent
+    purifierMotor.setIcon("mdi:fan");    // mdi:air-purifier");
     purifierMotor.setName("AirPurifier speed");
 
     leds.onStateCommand(onLedStateChanged);
@@ -496,21 +484,20 @@ void initPurifierPins()
 #else
     pinMode(PINS_STATUS_LED, OUTPUT);
 #endif
-    pinMode(PINS_REPLAY_1, OUTPUT);
-    pinMode(PINS_REPLAY_2, OUTPUT);
-}
-
-void initDigitalPot()
-{
-    pot.setup();
-    pot.begin(10000); // MCP4011 10Kohm installed
-    pot.zeroWiper();
 }
 
 /////////////////// ARDUINO CODE //////////////
 void setup()
 {
     Serial.begin(115200);
+
+    initPurifierPins();
+    fanControl.init();
+    ledStrip.init();
+
+    // Power ON Led Effects
+    ledStrip.setMode(LedStrip::Mode::PowerOn);
+
     /* Valid for boards with USB-COM. Wait until the port is open */
     // while(!Serial) delay(10);
     for (int i = 8; i > 0; i--)
@@ -519,7 +506,7 @@ void setup()
         delay(1000);
     }
 
-    //No need to run at 240MHz (80 is more than enought for the application)
+    // No need to run at 240MHz (80 is more than enought for the application)
     setCpuFrequencyMhz(80);
 
     // Start 1024 bytes of EEPROM
@@ -528,18 +515,16 @@ void setup()
 #if !defined(HARDCODED_CREDENTIALS)
     // Start try to get wifi/mqtt credentials,
     // This method is blocking while all data are not initalized.
+    ledStrip.setMode(LedStrip::Mode::Kitt);
     credentials.init("Air Purifier AP", "airpurifier");
     bool forcedMode = false;
     credentials.loadParameters(256, forcedMode); // EPROM Base address //BME680 need 197 bytes, so start at @256
+    ledStrip.setMode(LedStrip::Mode::Normal);
 #endif
 
-    initPurifierPins();
-    initDigitalPot();
-    sensorDust.init();
     sensorDust.registercallBack(onDustChanged);
     sensorAir.init(0); // EEPROM Base Address 0
     sensorAir.attachCallback(onBMEDataChanged);
-    ledStrip.init();
 
     airManager.registerMotorSpeedcallBack(onManagerMotorSpeedChanged);
     airManager.registerLedColorcallBack(onManagerLedColorChanged);
@@ -556,7 +541,7 @@ void setup()
 
     // Start AsyncElegantOTA
     server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) { request->send(200, "text/plain", "Hi, go to /update to see the page"); });
-    AsyncElegantOTA.begin(&server,OTAUser, OTAPwd );
+    AsyncElegantOTA.begin(&server, OTAUser, OTAPwd);
     server.begin();
 }
 
@@ -567,7 +552,8 @@ void loop()
     sensorDust.loop();
 
     // Actuators
-    ledStrip.loop();
+    // ledStrip.loop(); //done its in own freertos task
+    fanControl.loop();
 
     // Communication
     loopMQTT();

@@ -7,18 +7,25 @@
 class LedStrip
 {
   public:
+    enum Mode
+    {
+        Off = 0,
+        Idle,
+        PowerOn,
+        Kitt,
+        Normal,
+    };
+
     LedStrip() = default;
 
     void init();
 
-    void demo();
-    void loop();
-
     void setBrightness(uint8_t brightness);
     void setColor(uint8_t red, uint8_t green, uint8_t blue);
     void set(uint8_t brightness, uint8_t red, uint8_t green, uint8_t blue);
-
     void setState(bool active);
+
+    void setMode(LedStrip::Mode m);
 
   private:
 /* I/O define */
@@ -30,6 +37,14 @@ class LedStrip
     CRGB    leds[NUM_LEDS];
     uint8_t brightness{0};
     bool    ledStripAcive{false};
+    Mode    currentMode{Off};
+
+    static void startTask(void*);
+    void        task();
+
+    // Effects
+    void runningLights(uint8_t red, uint8_t green, uint8_t blue, uint32_t WaveDelay);
+    void colorWipe(uint8_t red, uint8_t green, uint8_t blue, uint32_t SpeedDelay);
 };
 
 #endif
