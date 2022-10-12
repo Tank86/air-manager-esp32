@@ -494,6 +494,7 @@ void setup()
     initPurifierPins();
     fanControl.init();
     ledStrip.init();
+    sensorDust.init();
 
     // Power ON Led Effects
     ledStrip.setMode(LedStrip::Mode::PowerOn);
