@@ -36,12 +36,14 @@ void LedStrip::task()
         {
             case PowerOn:
             {
+                FastLED.setBrightness(128);
                 runningLights(0, 225, 0, 50);
             }
             break;
             case Kitt:
             {
-                colorWipe(0x00, 0xff, 0x00, 50);
+                FastLED.setBrightness(128);
+                colorWipe(0x00, 0x00, 0xff, 50);
                 colorWipe(0x00, 0x00, 0x00, 50);
             }
             break;
