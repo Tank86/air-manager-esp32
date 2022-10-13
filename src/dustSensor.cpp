@@ -90,8 +90,12 @@ void DustSensor::loop()
         uint16_t adcvalue = readADC_Cal(adcValueRaw);
         // Serial.println("Dust Volatage: Raw=" + String(adcValueRaw) + "  Count   " + String(adcvalue) + "mV");
 
-        // We have a 50% resistor divider so multiply by 2
+// We have a 50% resistor divider so multiply by 2
+#if defined(WAVESHARE_DUST_SENSOR_MODE)
+        float voltage = (adcvalue * 11.0);
+#else
         float voltage = (adcvalue * 2.0);
+#endif
 
         // Average filter
         voltage = Filter(voltage);
@@ -135,7 +139,7 @@ void DustSensor::printDustAirQuality() const
     //     150-250     |      201-300   |        V       |  Heavy pollution
     //     250-500     |      ≥300 	    |       VI       |  Serious pullution
 
-    //print dust status only every 10 seconds
+    // print dust status only every 10 seconds
     uint32_t now = millis();
     if ((now - lastSent) > (10 * 1000))
     {

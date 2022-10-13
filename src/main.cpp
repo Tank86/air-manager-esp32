@@ -29,7 +29,11 @@ HADevice   device;
 HAMqtt     mqtt(espClient, device, 15); // Max 15 sensors
 // See https://www.home-assistant.io/integrations/#search/mqtt
 // See https://www.home-assistant.io/integrations/sensor/#device-class
-HALight        leds("ledStrip", HALight::BrightnessFeature | HALight::RGBFeature);
+#if defined(HA_COLOR_HEXA_MODE)
+HALight leds("ledStrip", HALight::BrightnessFeature | HALight::RGBFeature | HALight::RGBHEXAFeature);
+#else
+HALight leds("ledStrip", HALight::BrightnessFeature | HALight::RGBFeature);
+#endif
 HAFan          purifierMotor("motor", HAFan::SpeedsFeature); // AirPurifier Motor
 HASelect       purifierMode("mode");                         // Represent the mode of the purifier (Off/Manual/Automatic/NightMode)
 HASensorNumber wifiRSSI("wrssi", HABaseDeviceType::PrecisionP0);
@@ -68,8 +72,8 @@ void onManagerLedColorChanged(uint8_t red, uint8_t green, uint8_t blue)
     auto color = HALight::RGBColor(red, green, blue);
     if (leds.getCurrentRGBColor() != color)
     {
-        const uint8_t brightness = (red == 0 && green == 0 && blue == 0) ? 0 : 64;
         Serial.println("Led Strip Color Changed " + color.toString());
+        const uint8_t brightness = (red == 0 && green == 0 && blue == 0) ? 0 : 64;
         ledStrip.set(brightness, color.red, color.green, color.blue);
 
         // Update mqtt state
@@ -164,6 +168,9 @@ void onPurifierModeChanged(int8_t index, HASelect* sender)
     else
     {
         Serial.println("Mode changed to: " + String(airManager.getModeStr()));
+
+        if (airManager.isAutoModeActive() && (airManager.getCurrentMode() != PurifierManager::Modes::Night)) ledStrip.setMode(LedStrip::Mode::Breath);
+        else ledStrip.setMode(LedStrip::Mode::Normal);
 
         sender->setState(index);
     }
@@ -520,7 +527,6 @@ void setup()
     credentials.init("Air Purifier AP", "airpurifier");
     bool forcedMode = false;
     credentials.loadParameters(256, forcedMode); // EPROM Base address //BME680 need 197 bytes, so start at @256
-    ledStrip.setMode(LedStrip::Mode::Normal);
 #endif
 
     sensorDust.registercallBack(onDustChanged);
@@ -529,6 +535,8 @@ void setup()
 
     airManager.registerMotorSpeedcallBack(onManagerMotorSpeedChanged);
     airManager.registerLedColorcallBack(onManagerLedColorChanged);
+    if(airManager.isAutoModeActive()) ledStrip.setMode(LedStrip::Mode::Breath);
+    else ledStrip.setMode(LedStrip::Mode::Normal);
 
 #if defined(HARDCODED_CREDENTIALS)
     initWIFI(wifi_ssid, wifi_password);

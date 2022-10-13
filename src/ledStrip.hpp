@@ -10,10 +10,10 @@ class LedStrip
     enum Mode
     {
         Off = 0,
-        Idle,
         PowerOn,
         Kitt,
         Normal,
+        Breath,
     };
 
     LedStrip() = default;
@@ -30,17 +30,27 @@ class LedStrip
   private:
 /* I/O define */
 #define CHIPSET WS2812
+#if !defined(LEDSTRIP_LEDS_COUNT)
+#define LEDSTRIP_LEDS_COUNT 26
+#endif
+    static constexpr uint8_t NUM_LEDS    = LEDSTRIP_LEDS_COUNT;
     static constexpr uint8_t LED_PIN     = PINS_LEDSTRIP_PIN;
-    static constexpr uint8_t NUM_LEDS    = 50;
     static constexpr EOrder  COLOR_ORDER = EOrder::GRB;
 
-    CRGB    leds[NUM_LEDS];
-    uint8_t brightness{0};
-    bool    ledStripAcive{false};
-    Mode    currentMode{Off};
+    CRGB leds[NUM_LEDS];
+    struct
+    {
+        uint8_t brightness;
+        CRGB    color;
+    } target{0};
+    Mode currentMode{Off};
 
     static void startTask(void*);
     void        task();
+
+    // Utils
+    int8_t distance(uint8_t current, uint8_t next, int8_t step);
+    CRGB   distance(CRGB& current, CRGB& next, int8_t step);
 
     // Effects
     void runningLights(uint8_t red, uint8_t green, uint8_t blue, uint32_t WaveDelay);

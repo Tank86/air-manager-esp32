@@ -26,6 +26,7 @@ class PurifierManager
         else if (currentMode == Modes::Manual) return "Manual";
         else if (currentMode == Modes::Automatic) return "Automatic";
         else if (currentMode == Modes::Night) return "Night";
+        else if (currentMode == Modes::AutoLed) return "AutoLed";
         else return "unknown"; // should never happen
     }
     int8_t getModeIndex() const { return (int8_t)(currentMode); }
