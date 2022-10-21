@@ -390,7 +390,7 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     device.setName("Air Manager");
     device.setModel("Air Tower 1");
     device.setManufacturer("Tank86 electronics");
-    device.setSoftwareVersion("2.0.3");
+    device.setSoftwareVersion("2.0.4");
 
     // Use last will message
     device.enableLastWill();
@@ -423,7 +423,7 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     humidity.setIcon("mdi:water-percent");
     humidity.setName("AirPurifier humidity");
 
-    pressure.setUnitOfMeasurement("mBar");
+    pressure.setUnitOfMeasurement("mbar");
     pressure.setDeviceClass("pressure");
     pressure.setIcon("mdi:weather-cloudy");
     pressure.setName("AirPurifier pressure");
