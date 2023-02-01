@@ -441,18 +441,18 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     iaqAccuracy.setIcon("mdi:poll");
     iaqAccuracy.setName("AirPurifier IAQ accuracy");
 
-    vocEquivalent.setUnitOfMeasurement("ppb");
+    vocEquivalent.setUnitOfMeasurement("ppm");
     vocEquivalent.setDeviceClass("volatile_organic_compounds");
     vocEquivalent.setIcon("mdi:emoticon-poop");
     vocEquivalent.setName("AirPurifier VOC equivalent");
 
-    dustPM25.setUnitOfMeasurement("ug/m3");
+    dustPM25.setUnitOfMeasurement("µg/m³");
     dustPM25.setDeviceClass("pm25");
     dustPM25.setIcon("mdi:weather-dust");
     dustPM25.setName("AirPurifier PM2.5 (dust sensor)");
 
     wifiRSSI.setDeviceClass("signal_strength");
-    wifiRSSI.setUnitOfMeasurement("dbm");
+    wifiRSSI.setUnitOfMeasurement("dBm");
     wifiRSSI.setName("AirPurifier Wifi signal strength");
     wifiRSSI.setIcon("mdi:signal-variant");
 
