@@ -15,6 +15,7 @@
 AsyncWebServer    server(80);
 static const char OTAUser[] = "AirPurifierTower";
 static const char OTAPwd[]  = "Tank86";
+static const char hostname[] = "AirPurifierTower";
 
 CredentialsManager credentials;
 PurifierManager    airManager;
@@ -257,9 +258,11 @@ void initWIFI(const char* ssid, const char* password)
     device.setUniqueId(mac, sizeof(mac));
 
     // Connect to wifi
+    WiFi.setHostname(hostname);
     Serial.println("Connecting to " + String(ssid));
     WiFi.persistent(false);
     WiFi.begin(ssid, password);
+
     while (WiFi.status() != WL_CONNECTED)
     {
         Serial.print(".");
@@ -390,7 +393,7 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     device.setName("Air Manager");
     device.setModel("Air Tower 1");
     device.setManufacturer("Tank86 electronics");
-    device.setSoftwareVersion("2.0.4");
+    device.setSoftwareVersion("2.0.5");
 
     // Use last will message
     device.enableLastWill();
