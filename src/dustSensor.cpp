@@ -56,7 +56,9 @@ void DustSensor::init()
     digitalWrite(iled, LOW);
 
     // Configure adc
-    adc_set_clk_div(1); // We want fastest possible measurement
+    // We want fastest possible measurement
+    analogSetClockDiv(1);
+    //adc_set_clk_div(1);
     adc1_config_channel_atten(adcChannel, ADC_ATTEN_DB_11);
 #if defined(CONFIG_IDF_TARGET_ESP32S2)
     adc1_config_width(ADC_WIDTH_BIT_13); // (13 bits is the HW resolution: 0-8191)
