@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        variant: [lolin_s2_mini, lolin_s2_mini_alt, lolin_c3_mini, wemos_d1_mini32]
+        variant: [lolin_s2_mini, lolin_s2_mini_alt, lolin_s3_mini, lolin_c3_mini, wemos_d1_mini32]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
