@@ -6,13 +6,14 @@
 #include "purifierManager.hpp"
 #include <Arduino.h>
 #include <ArduinoHA.h>
-#include <AsyncElegantOTA.h>
+#include <ElegantOTA.h>
+#include <WebServer.h>
 #include <EEPROM.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
 #include <Wire.h>
 
-AsyncWebServer    server(80);
+WebServer         server(80);
 static const char OTAUser[] = "AirPurifierTower";
 static const char OTAPwd[]  = "Tank86";
 static const char hostname[] = "AirPurifierTower";
@@ -131,7 +132,6 @@ void onBMEDataChanged(const bme68xData data, const bsecOutputs outputs, Bsec2 bs
                 Serial.println("\thumidity comp = " + String(output.signal));
                 humidity.setValueFloat(output.signal);
                 break;
-            case BSEC_OUTPUT_COMPENSATED_GAS: Serial.println("\tcompensated gas = " + String(output.signal)); break;
             case BSEC_OUTPUT_GAS_PERCENTAGE: Serial.println("\tgas percentage = " + String(output.signal)); break;
             case BSEC_OUTPUT_GAS_ESTIMATE_1: Serial.println("\tgas estimate 1 = " + String(output.signal)); break;
             case BSEC_OUTPUT_GAS_ESTIMATE_2: Serial.println("\tgas estimate 2 = " + String(output.signal)); break;
@@ -393,7 +393,7 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     device.setName("Air Manager");
     device.setModel("Air Tower 1");
     device.setManufacturer("Tank86 electronics");
-    device.setSoftwareVersion("2.0.5");
+    device.setSoftwareVersion("3.0.0");
 
     // Use last will message
     device.enableLastWill();
@@ -551,9 +551,10 @@ void setup()
              credentials.getMqttPwd()[0] == 0 ? nullptr : credentials.getMqttPwd());
 #endif
 
-    // Start AsyncElegantOTA
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) { request->send(200, "text/plain", "Hi, go to /update to see the page"); });
-    AsyncElegantOTA.begin(&server, OTAUser, OTAPwd);
+    // Start ElegantOTA
+
+    server.on("/", []() { server.send(200, "text/plain", "Hi, go to /update to see the page"); });
+    ElegantOTA.begin(&server, OTAUser, OTAPwd);
     server.begin();
 }
 
@@ -569,6 +570,8 @@ void loop()
 
     // Communication
     loopMQTT();
+    server.handleClient();
+    ElegantOTA.loop();
 }
 
 /////////////////// ARDUINO CODE //////////////

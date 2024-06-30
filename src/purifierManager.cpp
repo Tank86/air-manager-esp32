@@ -26,7 +26,6 @@ void PurifierManager::process(const bsecData sensor)
             break;
         case BSEC_OUTPUT_CO2_EQUIVALENT:
         case BSEC_OUTPUT_RAW_GAS:
-        case BSEC_OUTPUT_COMPENSATED_GAS:
         case BSEC_OUTPUT_GAS_PERCENTAGE:
         case BSEC_OUTPUT_GAS_ESTIMATE_1:
         case BSEC_OUTPUT_GAS_ESTIMATE_2:

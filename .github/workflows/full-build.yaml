@@ -1,0 +1,52 @@
+name: full-build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant: [lolin_s2_mini, lolin_s2_mini_alt, lolin_c3_mini, wemos_d1_mini32]
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: 'true'
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/pip
+          ~/.platformio/.cache
+        key: ${{ runner.os }}-pio
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10' 
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install platformio
+    # It is important to first install the libraries before compiling, since otherwise compilation might fail to find the just-installed libraries
+    - name: Install platformIO libraries
+      run: pio pkg install
+
+    - name: Build ${{ matrix.variant }}
+      run: pio run -e ${{ matrix.variant }}
+    - name: Upload ${{ matrix.variant }} firmware
+      uses: actions/upload-artifact@v4
+      with:
+        name: air-manager-${{ matrix.variant }}-binary
+        path: .pio/build/${{ matrix.variant }}/firmware.bin
+
+        
