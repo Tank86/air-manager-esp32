@@ -7,13 +7,13 @@
 #include <Arduino.h>
 #include <ArduinoHA.h>
 #include <ElegantOTA.h>
-#include <WebServer.h>
+#include <ESPAsyncWebServer.h>
 #include <EEPROM.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
 #include <Wire.h>
 
-WebServer         server(80);
+AsyncWebServer    server(80);
 static const char OTAUser[] = "AirPurifierTower";
 static const char OTAPwd[]  = "Tank86";
 static const char hostname[] = "AirPurifierTower";
@@ -252,13 +252,17 @@ void onLedStateChanged(bool state, HALight* sender)
 
 void initWIFI(const char* ssid, const char* password)
 {
+    //Disconnect before resetup
+    WiFi.disconnect();
+    delay(1000);
     // Unique ID must be set!
     byte mac[6]; // WL_MAC_ADDR_LENGTH];
     WiFi.macAddress(mac);
     device.setUniqueId(mac, sizeof(mac));
 
     // Connect to wifi
-    WiFi.setHostname(hostname);
+    WiFi.setHostname((String(hostname) + String(mac, HEX)).c_str());
+    WiFi.mode(WIFI_STA);  
     Serial.println("Connecting to " + String(ssid));
     WiFi.persistent(false);
     WiFi.begin(ssid, password);
@@ -393,7 +397,7 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     device.setName("Air Manager");
     device.setModel("Air Tower 1");
     device.setManufacturer("Tank86 electronics");
-    device.setSoftwareVersion("3.0.0");
+    device.setSoftwareVersion("3.0.1");
 
     // Use last will message
     device.enableLastWill();
@@ -552,9 +556,9 @@ void setup()
 #endif
 
     // Start ElegantOTA
-
-    server.on("/", []() { server.send(200, "text/plain", "Hi, go to /update to see the page"); });
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) { request->send(200, "text/plain", "Hi, go to /update to see the page"); });
     ElegantOTA.begin(&server, OTAUser, OTAPwd);
+    ElegantOTA.setAutoReboot(true);
     server.begin();
 }
 
@@ -570,7 +574,6 @@ void loop()
 
     // Communication
     loopMQTT();
-    server.handleClient();
     ElegantOTA.loop();
 }
 
