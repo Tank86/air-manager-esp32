@@ -118,7 +118,7 @@ void onBMEDataChanged(const bme68xData data, const bsecOutputs outputs, Bsec2 bs
             case BSEC_OUTPUT_RAW_TEMPERATURE: Serial.println("\ttemperature = " + String(output.signal)); break;
             case BSEC_OUTPUT_RAW_PRESSURE:
                 Serial.println("\tpressure = " + String(output.signal));
-                pressure.setValueFloat(output.signal / 100.0f); // convert to mbar
+                pressure.setValueFloat(output.signal); // mbar
                 break;
             case BSEC_OUTPUT_RAW_HUMIDITY: Serial.println("\thumidity = " + String(output.signal)); break;
             case BSEC_OUTPUT_RAW_GAS: Serial.println("\tgas resistance = " + String(output.signal)); break;
@@ -397,7 +397,7 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     device.setName("Air Manager");
     device.setModel("Air Tower 1");
     device.setManufacturer("Tank86 electronics");
-    device.setSoftwareVersion("3.1.0");
+    device.setSoftwareVersion("3.1.1");
 
     // Use last will message
     device.enableLastWill();
