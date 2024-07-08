@@ -2,6 +2,18 @@
 #include <EEPROM.h>
 #include <Wire.h>
 
+/**
+ * For more information visit : 
+ * https://www.bosch-sensortec.com/software-tools/software/bme688-software/
+ * 
+ * For quick integration test, example code can be used with configuration file under folder
+ * Bosch_BSEC2_Library/src/config/FieldAir_HandSanitizer (Configuration file added as simple
+ * code example for integration but not optimized on classification performance)
+ * Config string for H2S and NonH2S target classes is also kept for reference (Suitable for
+ * lab-based characterization of the sensor)
+ */
+//#include "config/Default_H2S_NonH2S/Default_H2S_NonH2S.h"
+
 /* Configuration for two class classification used here
  * For four class classification please use configuration under config/FieldAir_HandSanitizer_Onion_Cinnamon
  */

@@ -397,7 +397,7 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     device.setName("Air Manager");
     device.setModel("Air Tower 1");
     device.setManufacturer("Tank86 electronics");
-    device.setSoftwareVersion("3.0.1");
+    device.setSoftwareVersion("3.1.0");
 
     // Use last will message
     device.enableLastWill();

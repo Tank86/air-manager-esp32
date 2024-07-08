@@ -22,7 +22,8 @@ class DustSensor
 
   private:
     uint32_t readADC_Cal(uint16_t ADC_Raw);
-    uint16_t Filter(uint16_t m);
+    uint16_t filter(uint16_t m);
+    uint16_t movingAverage(uint16_t m);
 
     void printDustAirQuality() const;
 

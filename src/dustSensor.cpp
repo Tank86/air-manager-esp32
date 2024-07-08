@@ -1,7 +1,7 @@
 #include "dustSensor.hpp"
 #include "esp_adc_cal.h"
 
-uint16_t DustSensor::Filter(uint16_t m)
+uint16_t DustSensor::filter(uint16_t m)
 {
     const size_t    _buff_max  = 10;
     static uint16_t _buff[10]  = {0};
@@ -33,6 +33,27 @@ uint16_t DustSensor::Filter(uint16_t m)
     }
 }
 
+uint16_t DustSensor::movingAverage(uint16_t m) 
+{
+    #define WINDOW_SIZE 60
+    static uint32_t values[WINDOW_SIZE];
+    static uint32_t index = 0;
+    static uint32_t sum = 0;
+
+    // Remove the oldest entry from the sum
+    sum -= values[index];
+    // Add the newest reading to the window
+    values[index] = m;
+    // Add the newest reading to the sum
+    sum += m;
+    index = (index + 1) % WINDOW_SIZE;
+
+    // Divide the sum of the window by the window size for the result
+    uint16_t averaged = sum / WINDOW_SIZE;      
+
+    return averaged;
+}
+
 uint32_t DustSensor::readADC_Cal(uint16_t ADC_Raw)
 {
     esp_adc_cal_characteristics_t adc_chars;
@@ -57,8 +78,11 @@ void DustSensor::init()
 
     // Configure adc
     // We want fastest possible measurement
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C3)
     analogSetClockDiv(1);
-    //adc_set_clk_div(1);
+#else
+    adc_set_clk_div(1);
+#endif
     adc1_config_channel_atten(adcChannel, ADC_ATTEN_DB_11);
 #if defined(CONFIG_IDF_TARGET_ESP32S2)
     adc1_config_width(ADC_WIDTH_BIT_13); // (13 bits is the HW resolution: 0-8191)
@@ -73,6 +97,7 @@ void DustSensor::loop()
 {
     static uint32_t lastAcqTimer = millis();
 
+    //every second
     if ((millis() - lastAcqTimer) > (1000))
     {
         lastAcqTimer = millis();
@@ -99,12 +124,12 @@ void DustSensor::loop()
         float voltage = (adcvalue * 2.0);
 #endif
 
-        // Average filter
-        voltage = Filter(voltage);
+        // Average filter (60 samples)
+        voltage = movingAverage(voltage);
 
         // voltage to density
 #if false
-        static const float    COV_RATIO       = 0.2; // ug/mmm / mv
+        static const float    COV_RATIO       = 0.2;  // ug/mmm / mv
         static const uint16_t NO_DUST_VOLTAGE = 400;  // mv
 
         if (voltage >= NO_DUST_VOLTAGE)
@@ -154,7 +179,7 @@ void DustSensor::printDustAirQuality() const
         else if (dust_density <= 150) Serial.print("- Air quality: Light pollution");
         else if (dust_density <= 200) Serial.print("- Air quality: Moderatre pollution");
         else if (dust_density <= 300) Serial.print("- Air quality: Heavy pollution");
-        else if (dust_density > 300) Serial.print("- Air quality: Serious pollution");
+        else if (dust_density > 300)  Serial.print("- Air quality: Serious pollution");
         Serial.println("");
     }
 #endif
