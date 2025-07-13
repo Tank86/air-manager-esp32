@@ -1,5 +1,5 @@
 #include "dustSensor.hpp"
-#include "esp_adc_cal.h"
+#include <esp_adc/adc_cali.h>
 
 uint16_t DustSensor::filter(uint16_t m)
 {
@@ -54,15 +54,11 @@ uint16_t DustSensor::movingAverage(uint16_t m)
     return averaged;
 }
 
-uint32_t DustSensor::readADC_Cal(uint16_t ADC_Raw)
+uint32_t DustSensor::readADC_Cal(int ADC_Raw)
 {
-    esp_adc_cal_characteristics_t adc_chars;
-#if defined(CONFIG_IDF_TARGET_ESP32S2)
-    esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_13, 1100, &adc_chars);
-#else
-    esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
-#endif
-    return (esp_adc_cal_raw_to_voltage(ADC_Raw, &adc_chars));
+    int output_mv = 0;
+    adc_cali_raw_to_voltage(cali_handle, ADC_Raw, &output_mv);
+    return static_cast<uint32_t>(output_mv);
 }
 
 void DustSensor::registercallBack(dustAcquiredCallback c)
@@ -77,19 +73,40 @@ void DustSensor::init()
     digitalWrite(iled, LOW);
 
     // Configure adc
-    // We want fastest possible measurement
-#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C3)
-    analogSetClockDiv(1);
-#else
-    adc_set_clk_div(1);
-#endif
-    adc1_config_channel_atten(adcChannel, ADC_ATTEN_DB_11);
-#if defined(CONFIG_IDF_TARGET_ESP32S2)
-    adc1_config_width(ADC_WIDTH_BIT_13); // (13 bits is the HW resolution: 0-8191)
-#else
-    adc1_config_width(ADC_WIDTH_BIT_12); // (12 bits is the HW resolution: 0-4095)
-#endif
+    // We want fastest possible measurement //TODO: check if this is correct for all esp32
 
+    const adc_oneshot_unit_init_cfg_t init_config1 = {
+        .unit_id = ADC_UNIT_1,
+#ifdef CONFIG_IDF_TARGET_ESP32C3
+        .clk_src = ADC_DIGI_CLK_SRC_APB,
+#else
+        .clk_src = ADC_RTC_CLK_SRC_RC_FAST,
+#endif
+        .ulp_mode = ADC_ULP_MODE_DISABLE,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config1, &handle));
+
+    const adc_oneshot_chan_cfg_t config = {
+        .atten = ADC_ATTEN_DB_12,
+        .bitwidth = ADC_BITWIDTH_13,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(handle, ADC_CHANNEL_0, &config));
+
+#if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
+    const adc_cali_curve_fitting_config_t cali_config = {
+        .unit_id = ADC_UNIT_1,
+        .atten = ADC_ATTEN_DB_12,
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+    };
+    ESP_ERROR_CHECK(adc_cali_create_scheme_curve_fitting(&cali_config, &cali_handle));
+#elif ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
+    const adc_cali_line_fitting_config_t cali_config = {
+        .unit_id = ADC_UNIT_1,
+        .atten = ADC_ATTEN_DB_12,
+        .bitwidth = ADC_BITWIDTH_13,
+    };
+    ESP_ERROR_CHECK(adc_cali_create_scheme_line_fitting(&cali_config, &cali_handle));
+#endif
     Serial.println("Dust sensor initialised");
 }
 
@@ -101,17 +118,18 @@ void DustSensor::loop()
     if ((millis() - lastAcqTimer) > (1000))
     {
         lastAcqTimer = millis();
-        uint16_t adcValueRaw;
+        int adcValueRaw;
 
-        adc_power_acquire();
+        //adc_power_acquire();
         // ACtivate the pulse, do the adc measurment, then stop the pulse
         digitalWrite(iled, HIGH);
         delayMicroseconds(280);
         // Use esp idf measurement as it is WAYYYYYYY faster than arduino, so the value is correctly read at a precise time
-        adcValueRaw = adc1_get_raw(adcChannel);
+        adc_oneshot_read(handle, adcChannel, &adcValueRaw);
+
         // adcValueRaw = analogRead(vout); //Start the adc reading here, as it takes a long time to read the value
         digitalWrite(iled, LOW);
-        adc_power_release();
+        //adc_power_release();
 
         // convert adc to voltage using internal efuse calibration
         uint16_t adcvalue = readADC_Cal(adcValueRaw);
@@ -140,8 +158,8 @@ void DustSensor::loop()
         else dust_density = 0;
 #else
         // See http://www.howmuchsnow.com/arduino/airquality/
-        // dust_density = ((0.172 * (voltage / 1000.0)) - 0.0999) * 1000.0;
-        dust_density = ((0.172 * (voltage / 1000.0)) - 0.085) * 1000.0;
+        dust_density = ((0.172 * (voltage / 1000.0)) - 0.0999) * 1000.0;
+        //dust_density = ((0.172 * (voltage / 1000.0)) - 0.085) * 1000.0;
         if (dust_density < 0) dust_density = 0;
 #endif
 

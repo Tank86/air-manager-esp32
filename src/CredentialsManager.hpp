@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <DNSServer.h>
 #include <WebServer.h>
+#include <WiFi.h>
 
 class CredentialsManager
 {
