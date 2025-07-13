@@ -18,6 +18,11 @@ static const char OTAUser[] = "AirPurifierTower";
 static const char OTAPwd[]  = "Tank86";
 static const char hostname[] = "AirPurifierTower";
 
+static const char device_Name[] = "Air Manager";
+static const char device_Model[] = "Air Tower 1";
+static const char device_Manufacturer[] = "Tank86 electronics";
+static const char device_version[] = "4.0.0";
+
 CredentialsManager credentials;
 PurifierManager    airManager;
 LedStrip           ledStrip;
@@ -394,10 +399,10 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     Serial.println("Connection to mqtt server " + String(address) + ":" + String(port) + ((user != nullptr) ? ("@" + String(user)) : ""));
 
     // set device's details (optional)
-    device.setName("Air Manager");
-    device.setModel("Air Tower 1");
-    device.setManufacturer("Tank86 electronics");
-    device.setSoftwareVersion("3.1.1");
+    device.setName(device_Name);
+    device.setModel(device_Model);
+    device.setManufacturer(device_Manufacturer);
+    device.setSoftwareVersion(device_version);
 
     // Use last will message
     device.enableLastWill();
@@ -449,7 +454,7 @@ void initMQTT(const char* address, uint16_t port, const char* user = nullptr, co
     iaqAccuracy.setName("AirPurifier IAQ accuracy");
 
     vocEquivalent.setUnitOfMeasurement("ppm");
-    vocEquivalent.setDeviceClass("volatile_organic_compounds");
+    vocEquivalent.setDeviceClass("volatile_organic_compounds_parts");
     vocEquivalent.setIcon("mdi:emoticon-poop");
     vocEquivalent.setName("AirPurifier VOC equivalent");
 
