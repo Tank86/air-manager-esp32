@@ -15,6 +15,7 @@ RUN apt-get update \
     python3-distutils \
     python3-pip \
     python3-setuptools \
+    python-is-python3 \
     srecord \
     udev \
     xz-utils \
@@ -26,4 +27,5 @@ RUN curl -fLo /etc/udev/rules.d/99-platformio-udev.rules --create-dirs https://r
 
 USER $USERNAME
 
-RUN python3 -c "$(curl -fsSL https://raw.githubusercontent.com/platformio/platformio/develop/scripts/get-platformio.py)"
+RUN python3 -c "$(curl -fsSL -o get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py)"
+RUN rm get-platformio.py

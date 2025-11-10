@@ -21,7 +21,7 @@ static const char hostname[] = "AirPurifierTower";
 static const char device_Name[] = "Air Manager";
 static const char device_Model[] = "Air Tower 1";
 static const char device_Manufacturer[] = "Tank86 electronics";
-static const char device_version[] = "4.0.0";
+static const char device_version[] = "4.1.0";
 
 CredentialsManager credentials;
 PurifierManager    airManager;
@@ -45,7 +45,7 @@ HAFan          purifierMotor("motor", HAFan::SpeedsFeature); // AirPurifier Moto
 HASelect       purifierMode("mode");                         // Represent the mode of the purifier (Off/Manual/Automatic/NightMode)
 HASensorNumber wifiRSSI("wrssi", HABaseDeviceType::PrecisionP0);
 HASensorNumber dustPM25("pm25", HABaseDeviceType::PrecisionP0);
-HASensorNumber temp("temperature", HABaseDeviceType::PrecisionP1);
+HASensorNumber temp("temperature", HABaseDeviceType::PrecisionP2);
 HASensorNumber humidity("humidity", HABaseDeviceType::PrecisionP0);
 HASensorNumber pressure("pressure", HABaseDeviceType::PrecisionP1);
 HASensorNumber iaqAccuracy("iaqAccuracy", HABaseDeviceType::PrecisionP0); // 0: stabilisation, 1, low, 2, medium, 3, high

@@ -16,11 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        variant: [lolin_s2_mini, lolin_s2_mini_alt, lolin_s3_mini, lolin_c3_mini, wemos_d1_mini32]
+        variant: [lolin_s2_mini, lolin_s2_mini_alt, lolin_c3_mini, wemos_d1_mini32]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         submodules: 'true'
     - uses: actions/cache@v4
@@ -30,7 +30,7 @@ jobs:
           ~/.platformio/.cache
         key: ${{ runner.os }}-pio
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.10' 
     - name: Install dependencies
@@ -44,7 +44,7 @@ jobs:
     - name: Build ${{ matrix.variant }}
       run: pio run -e ${{ matrix.variant }}
     - name: Upload ${{ matrix.variant }} firmware
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: air-manager-${{ matrix.variant }}-binary
         path: .pio/build/${{ matrix.variant }}/firmware.bin
