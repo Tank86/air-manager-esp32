@@ -1,6 +1,7 @@
 #include "ledStrip.hpp"
 #include <Arduino.h>
 #include <SPI.h>
+#include <esp_task_wdt.h>
 
 void LedStrip::init()
 {
@@ -14,7 +15,7 @@ void LedStrip::init()
 
     xTaskCreate(this->startTask, /* Task function. */
                 "LedStripTask",  /* String with name of task. */
-                1024,            /* Stack size in bytes. */
+                4096,            /* Stack size in bytes. */
                 this,            /* Parameter passed as input of the task */
                 1,               /* Lower task priority (1) */
                 NULL);           /* Task handle. */
@@ -27,8 +28,14 @@ void LedStrip::startTask(void* _this)
 
 void LedStrip::task()
 {
+    // Add this task to the watchdog
+    esp_task_wdt_add(NULL);
+    
     while (1)
     {
+        // Feed the watchdog
+        esp_task_wdt_reset();
+        
         // get current mode
         auto activeMode = currentMode;
 
